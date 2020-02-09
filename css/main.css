@@ -1,0 +1,118 @@
+body {
+	margin: 0;
+	padding: 0;
+	background-color: #1E1E1E;
+}
+#first_hr {
+	margin: 0em;
+}
+#second_hr {
+	margin: 0em;
+}
+#language {
+	font-size: 25px;
+	margin-right: 10px;
+	float: right;
+	font-family: Consolas;
+	color: #FFD443;
+}
+#language:hover{
+	color: #3972A4;
+	
+}
+nav {
+	color: grey;
+	font-family: arial;
+	text-align: center;
+	font-size: 30px;
+	padding: 10px;
+	background-color: #282828;
+}
+a:hover {
+	color: yellow;
+}
+a:link{
+	text-decoration: none;
+	color: cyan;
+}
+@keyframes cv-colour-change {
+	  0% {
+	  	color: red;
+      }
+	  20% {
+	  	color: cyan;
+	  }
+      40% {
+      	color: yellow;
+      }
+      60% {
+      	color: lime;
+      }
+      80% {
+      	color: orange;
+      }
+      100% {
+      	color: red;
+      }
+    }
+#cv_link {
+	font-family: cmr10;
+	color: white;
+}
+#cv_link:hover {
+	animation: cv-colour-change 2s ease-in infinite;
+}
+#header_image {
+	max-width: 100%;
+	max-height: 100%;
+}
+#linkedin {
+	color: white;
+	}
+#linkedin:hover {
+	transition: all 1s ease;
+	color: #2867b2;
+}
+#youtube {
+	color: white;
+}
+#youtube:hover {
+	transition: all 1s ease;
+	color: red;
+}
+#github {
+	color: white;
+}
+#github:hover {
+	transition: all 1s ease;
+	color: black;
+}
+::selection {
+	background:#AC2937;
+	color:#FFF;
+	text-shadow:none;
+	
+}
+#about_me{
+	margin-top: 50px;
+	max-width: 560px;
+	font-family: Consolas;
+	color: #41FF00;
+	margin-left:auto; 
+    margin-right:auto;
+
+}
+#footer {
+	font-size: 20px;
+	margin-top: 650px;
+	font-family: Consolas;
+	color: white;
+	text-align: center;
+}
+#email:hover {
+	color: yellow;
+}
+#gruezi {
+	color: yellow;
+	margin
+}
