@@ -2,6 +2,7 @@ body {
 	margin: 0;
 	padding: 0;
 	background-color: #1E1E1E;
+	height: 2000px;
 }
 #first_hr {
 	margin: 0em;
@@ -87,13 +88,8 @@ a:link{
 	transition: all 1s ease;
 	color: black;
 }
-::selection {
-	background:#AC2937;
-	color:#FFF;
-	text-shadow:none;
-	
-}
-#about_me{
+
+#about_me {
 	margin-top: 50px;
 	max-width: 560px;
 	font-family: Consolas;
@@ -102,17 +98,42 @@ a:link{
     margin-right:auto;
 
 }
-#footer {
-	font-size: 20px;
-	margin-top: 650px;
+#projects {
+	text-align: center;
+	font-family: cmr10;
+	color: white;
+}
+#projects:hover{
+	animation: cv-colour-change 2s ease-in infinite;
+}
+#projects-table {
+	max-width: 560px;
 	font-family: Consolas;
+	color: yellow;
+	margin-left:auto; 
+    margin-right:auto;
+    border-spacing: 0 10px; 
+}
+#contact {
+	font-family: Consolas;
+	font-size: 20px;
 	color: white;
 	text-align: center;
+	position: fixed;
+	bottom: 0px;
+	width: 100%;
+	background-color: #1E1E1E;
 }
 #email:hover {
 	color: yellow;
 }
 #gruezi {
-	color: yellow;
-	margin
+	color: #37FDFC;
+}
+
+::selection {
+	background: #AC2937;
+	color: #FFF;
+	text-shadow:none;
+	transparency: ;
 }
