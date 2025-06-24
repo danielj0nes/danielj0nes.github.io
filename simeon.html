@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hexagon Symmetry Drawing</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        #canvas {
+            border: 3px solid #ddd;
+            border-radius: 15px;
+            cursor: crosshair;
+            background: #fafafa;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .clear-btn {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+        }
+
+        .export-btn {
+            background: #4ecdc4;
+            color: white;
+        }
+
+        .export-btn:hover {
+            background: #26d0ce;
+            transform: translateY(-2px);
+        }
+
+        .color-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid #ddd;
+            margin: 0 5px;
+        }
+
+        .color-btn.active {
+            border: 3px solid #333;
+            transform: scale(1.1);
+        }
+
+        .brush-size {
+            margin-top: 15px;
+        }
+
+        .brush-size input {
+            width: 200px;
+        }
+
+        .brush-size label {
+            color: #666;
+            font-weight: bold;
+        }
+
+        .instructions {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            color: #555;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hexagon Symmetry Drawing</h1>
+        <p class="subtitle">For Simeon</p>
+        
+        <div class="instructions">
+            🎨 <strong>How to use:</strong> Click and drag to draw on the hexagon. Your drawing will automatically be mirrored across 3 axes of symmetry. Enjoy ;)
+        </div>
+
+        <canvas id="canvas" width="600" height="600"></canvas>
+        
+        <div class="controls">
+            <button class="clear-btn" onclick="clearCanvas()">Clear Canvas</button>
+            <button class="export-btn" onclick="exportImage()">Export PNG</button>
+            
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #666; font-weight: bold;">Colors:</span>
+                <button class="color-btn active" style="background: #000" onclick="setColor('#000')"></button>
+                <button class="color-btn" style="background: #ff6b6b" onclick="setColor('#ff6b6b')"></button>
+                <button class="color-btn" style="background: #4ecdc4" onclick="setColor('#4ecdc4')"></button>
+                <button class="color-btn" style="background: #45b7d1" onclick="setColor('#45b7d1')"></button>
+                <button class="color-btn" style="background: #f9ca24" onclick="setColor('#f9ca24')"></button>
+                <button class="color-btn" style="background: #6c5ce7" onclick="setColor('#6c5ce7')"></button>
+                <button class="color-btn" style="background: #a55eea" onclick="setColor('#a55eea')"></button>
+            </div>
+        </div>
+        
+        <div class="brush-size">
+            <label for="brushSize">Brush Size: </label>
+            <input type="range" id="brushSize" min="1" max="10" value="3" oninput="setBrushSize(this.value)">
+            <span id="brushSizeValue">3</span>px
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let isDrawing = false;
+        let currentColor = '#000';
+        let currentBrushSize = 3;
+        
+        // Hexagon properties
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = 200;
+        
+        // Initialize canvas
+        function init() {
+            drawHexagon();
+            addEventListeners();
+            // Reset brush slider to default position
+            document.getElementById('brushSize').value = 3;
+            document.getElementById('brushSizeValue').textContent = '3';
+        }
+        
+        // Draw the hexagon outline
+        function drawHexagon() {
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI) / 3;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.closePath();
+            ctx.stroke();
+            
+            // Draw symmetry lines
+            ctx.strokeStyle = '#eee';
+            ctx.lineWidth = 1;
+            
+            // Draw the 3 symmetry axes
+            for (let i = 0; i < 3; i++) {
+                const angle = (i * Math.PI) / 3;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(
+                    centerX + radius * Math.cos(angle),
+                    centerY + radius * Math.sin(angle)
+                );
+                ctx.stroke();
+            }
+        }
+        
+        // Add event listeners for drawing
+        function addEventListeners() {
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            
+            // Touch events for mobile
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+        
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            
+            if (e.type === 'touchstart') {
+                startDrawing({offsetX: x, offsetY: y});
+            } else if (e.type === 'touchmove') {
+                draw({offsetX: x, offsetY: y});
+            }
+        }
+        
+        function startDrawing(e) {
+            isDrawing = true;
+            draw(e);
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.offsetX || (e.clientX - rect.left);
+            const y = e.offsetY || (e.clientY - rect.top);
+            
+            // Check if point is inside hexagon
+            if (isPointInHexagon(x, y)) {
+                drawSymmetricPoints(x, y);
+            }
+        }
+        
+        function stopDrawing() {
+            isDrawing = false;
+        }
+        
+        // Check if a point is inside the hexagon (simplified)
+        function isPointInHexagon(x, y) {
+            const dx = x - centerX;
+            const dy = y - centerY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Simple circular boundary check (slightly smaller than actual hexagon)
+            return distance <= radius * 0.9;
+        }
+        
+        // Draw points with 6-fold rotational symmetry
+        function drawSymmetricPoints(x, y) {
+            const points = getSymmetricPoints(x, y);
+            
+            ctx.fillStyle = currentColor;
+            
+            points.forEach(point => {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, currentBrushSize / 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+        
+        // Calculate all 6 symmetric points using rotational symmetry
+        function getSymmetricPoints(x, y) {
+            const points = [];
+            const dx = x - centerX;
+            const dy = y - centerY;
+            
+            // Get angle and distance from center
+            const angle = Math.atan2(dy, dx);
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Generate 6 points with 60-degree rotations
+            for (let i = 0; i < 6; i++) {
+                const newAngle = angle + (i * Math.PI) / 3;
+                const newX = centerX + distance * Math.cos(newAngle);
+                const newY = centerY + distance * Math.sin(newAngle);
+                points.push({x: newX, y: newY});
+            }
+            
+            return points;
+        }
+        
+        // Clear the canvas
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawHexagon();
+        }
+        
+        // Set drawing color
+        function setColor(color) {
+            currentColor = color;
+            
+            // Update active color button
+            document.querySelectorAll('.color-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+        
+        // Set brush size
+        function setBrushSize(size) {
+            currentBrushSize = parseInt(size);
+            document.getElementById('brushSizeValue').textContent = size;
+        }
+        
+        // Export canvas as PNG
+        function exportImage() {
+            // Create a temporary canvas with white background
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            
+            // Fill with white background
+            tempCtx.fillStyle = '#ffffff';
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // Draw the main canvas content on top
+            tempCtx.drawImage(canvas, 0, 0);
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.download = 'hexagon-symmetry-art.png';
+            link.href = tempCanvas.toDataURL('image/png');
+            
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // Initialize the application
+        init();
+    </script>
+</body>
+</html>

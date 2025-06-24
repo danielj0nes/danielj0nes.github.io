@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1024 1024">
+  <!-- Generator: Adobe Illustrator 29.5.0, SVG Export Plug-In . SVG Version: 2.1.0 Build 137)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: #4169e1;
+      }
+
+      .st0, .st1 {
+        font-family: Cmbx10, cmbx10;
+        font-size: 650px;
+      }
+
+      .st2 {
+        fill: none;
+      }
+
+      .st3 {
+        clip-path: url(#clippath);
+      }
+    </style>
+    <clipPath id="clippath">
+      <path class="st2" d="M256.79,192.23v714.44h591.48V192.23H256.79ZM734.54,336.54c-9.1,22.51-21.55,42.29-37.35,59.34-.99-1.73-1.86-3.18-2.69-4.53-12.67-20.51-29.11-37.16-48.87-49.51-.65-.41-1.31-.79-1.97-1.19,1.41-4.73,2.57-9.56,3.44-14.52,1.04-5.9,1.93-12.19,2.69-18.86,14.01,6.6,26.83,14.93,38.11,24.77l46-40.99c1.87-1.41,4.04-2.32,6.52-2.78l.18-.02h7.12c-2.69,17.1-7.07,33.19-13.16,48.27Z"/>
+    </clipPath>
+  </defs>
+  <text class="st0" transform="translate(258.79 742.17)"><tspan x="0" y="0">G</tspan></text>
+  <text class="st1" transform="translate(219.9 464.92)"><tspan x="0" y="0">D</tspan></text>
+  <g class="st3">
+    <text class="st0" transform="translate(258.79 742.17)"><tspan x="0" y="0">G</tspan></text>
+  </g>
+  <text class="st0" transform="translate(470.11 1008.72)"><tspan x="0" y="0">J</tspan></text>
+</svg>
