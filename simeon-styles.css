@@ -965,7 +965,10 @@ button:active {
 /* Mobile footer adjustments */
 @media (max-width: 768px) {
     .footer {
-        padding: 10px 0;
+        position: static;
+        margin-top: 40px;
+        padding: 20px 0;
+        box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
     }
     
     .footer-content {
@@ -991,7 +994,10 @@ button:active {
 
 @media (max-width: 480px) {
     .footer {
-        padding: 8px 0;
+        position: static;
+        margin-top: 30px;
+        padding: 16px 0;
+        box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
     }
     
     .footer-content {
