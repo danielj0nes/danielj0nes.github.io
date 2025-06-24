@@ -58,6 +58,15 @@ h1 {
     display: block;
     margin: 0 auto;
     transition: all 0.3s ease;
+    
+    /* High-resolution canvas optimization */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+    
+    /* Ensure sharp rendering on high-DPI displays */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 #canvas:hover {

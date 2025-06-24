@@ -9,6 +9,9 @@ let isRainbowMode = false;
 // Hexagon properties
 let centerX, centerY, radius;
 
+// High-resolution canvas scaling
+let scale = 1;
+
 // Initialize canvas
 function init() {
     setupCanvas();
@@ -19,20 +22,36 @@ function init() {
     document.getElementById('brushSizeValue').textContent = '3';
 }
 
-// Setup canvas dimensions based on screen size
+// Setup canvas dimensions based on screen size with high-resolution support
 function setupCanvas() {
     const container = document.querySelector('.container');
     const containerWidth = container.clientWidth - 40; // account for padding
     const maxSize = Math.min(containerWidth, 600);
-    const canvasSize = Math.max(300, maxSize); // minimum 300px
+    const displaySize = Math.max(300, maxSize); // minimum 300px
     
-    canvas.width = canvasSize;
-    canvas.height = canvasSize;
+    // Get device pixel ratio for high-resolution displays
+    const dpr = window.devicePixelRatio || 1;
+    scale = dpr;
     
-    // Update hexagon properties based on canvas size
-    centerX = canvas.width / 2;
-    centerY = canvas.height / 2;
-    radius = canvas.width * 0.42; // 42% of canvas width
+    // Set CSS display size
+    canvas.style.width = displaySize + 'px';
+    canvas.style.height = displaySize + 'px';
+    
+    // Set actual canvas resolution (higher for sharp rendering)
+    canvas.width = displaySize * dpr;
+    canvas.height = displaySize * dpr;
+    
+    // Scale the context to match device pixel ratio
+    ctx.scale(dpr, dpr);
+    
+    // Update hexagon properties based on display size
+    centerX = displaySize / 2;
+    centerY = displaySize / 2;
+    radius = displaySize * 0.42; // 42% of display width
+    
+    // Ensure crisp lines and shapes
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 }
 
 // Draw the hexagon outline
@@ -91,14 +110,23 @@ function addEventListeners() {
 
 // Handle window resize
 function handleResize() {
-    // Save current drawing
+    // Save current drawing at high resolution
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     
     // Recalculate canvas size
     setupCanvas();
     
-    // Restore drawing (this might not be perfect but provides some continuity)
-    ctx.putImageData(imageData, 0, 0);
+    // Restore drawing with proper scaling
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCanvas.width = imageData.width;
+    tempCanvas.height = imageData.height;
+    tempCtx.putImageData(imageData, 0, 0);
+    
+    // Draw the preserved image back onto the resized canvas
+    ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 
+                  0, 0, parseFloat(canvas.style.width), parseFloat(canvas.style.height));
+    
     drawHexagon();
 }
 
@@ -106,10 +134,11 @@ function handleTouch(e) {
     e.preventDefault();
     const touch = e.touches[0];
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = (touch.clientX - rect.left) * scaleX;
-    const y = (touch.clientY - rect.top) * scaleY;
+    // Convert to canvas coordinates (accounting for CSS vs actual canvas size)
+    const x = (touch.clientX - rect.left) * (canvas.style.width ? 
+        parseFloat(canvas.style.width) / rect.width : 1);
+    const y = (touch.clientY - rect.top) * (canvas.style.height ? 
+        parseFloat(canvas.style.height) / rect.height : 1);
     
     if (e.type === 'touchstart') {
         startDrawing({offsetX: x, offsetY: y});
@@ -127,16 +156,20 @@ function draw(e) {
     if (!isDrawing) return;
     
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
     
     let x, y;
     if (e.offsetX !== undefined && e.offsetY !== undefined) {
-        x = e.offsetX * scaleX;
-        y = e.offsetY * scaleY;
+        // Mouse events - convert from browser coordinates to canvas display coordinates
+        x = e.offsetX * (canvas.style.width ? 
+            parseFloat(canvas.style.width) / rect.width : 1);
+        y = e.offsetY * (canvas.style.height ? 
+            parseFloat(canvas.style.height) / rect.height : 1);
     } else {
-        x = (e.clientX - rect.left) * scaleX;
-        y = (e.clientY - rect.top) * scaleY;
+        // Touch events - convert from screen coordinates to canvas display coordinates
+        x = (e.clientX - rect.left) * (canvas.style.width ? 
+            parseFloat(canvas.style.width) / rect.width : 1);
+        y = (e.clientY - rect.top) * (canvas.style.height ? 
+            parseFloat(canvas.style.height) / rect.height : 1);
     }
     
     // Check if point is inside hexagon
@@ -261,28 +294,37 @@ function setBrushSize(size) {
 
 // Export canvas as PNG
 function exportImage() {
-    // Create a temporary canvas with white background
+    // Create a high-resolution temporary canvas with white background
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
+    
+    // Export at the full high-resolution size for maximum quality
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
     
-    // Fill with white background
+    // Enable high-quality image smoothing
+    tempCtx.imageSmoothingEnabled = true;
+    tempCtx.imageSmoothingQuality = 'high';
+    
+    // Fill with white background at full resolution
     tempCtx.fillStyle = '#ffffff';
     tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
     
-    // Draw the main canvas content on top
+    // Draw the main canvas content at full resolution
     tempCtx.drawImage(canvas, 0, 0);
     
-    // Create download link
+    // Create download link with high-quality PNG
     const link = document.createElement('a');
-    link.download = 'hexagon-symmetry-art.png';
-    link.href = tempCanvas.toDataURL('image/png');
+    link.download = 'hexagon-symmetry-art-hd.png';
+    link.href = tempCanvas.toDataURL('image/png', 1.0); // Maximum quality
     
     // Trigger download
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    // Show a toast to indicate the high-resolution export
+    showToast('High-resolution image exported! 📸');
 }
 
 // Initialize the application
@@ -471,27 +513,48 @@ function loadSavedDesigns() {
 // Save current canvas design
 function saveDesign() {
     try {
-        // Create a thumbnail
+        // Create a high-resolution thumbnail
         const thumbnailCanvas = document.createElement('canvas');
         const thumbnailCtx = thumbnailCanvas.getContext('2d');
-        const thumbnailSize = 200;
+        const thumbnailSize = 200 * (window.devicePixelRatio || 1); // High-res thumbnail
         
         thumbnailCanvas.width = thumbnailSize;
         thumbnailCanvas.height = thumbnailSize;
+        
+        // Enable high-quality scaling for thumbnail
+        thumbnailCtx.imageSmoothingEnabled = true;
+        thumbnailCtx.imageSmoothingQuality = 'high';
         
         // Fill with white background
         thumbnailCtx.fillStyle = '#ffffff';
         thumbnailCtx.fillRect(0, 0, thumbnailSize, thumbnailSize);
         
-        // Draw the main canvas scaled down
+        // Draw the main canvas scaled down at high resolution
         thumbnailCtx.drawImage(canvas, 0, 0, thumbnailSize, thumbnailSize);
+        
+        // Create full-size canvas with white background (already high-res)
+        const fullCanvas = document.createElement('canvas');
+        const fullCtx = fullCanvas.getContext('2d');
+        fullCanvas.width = canvas.width;
+        fullCanvas.height = canvas.height;
+        
+        // Enable high-quality settings
+        fullCtx.imageSmoothingEnabled = true;
+        fullCtx.imageSmoothingQuality = 'high';
+        
+        // Fill with white background
+        fullCtx.fillStyle = '#ffffff';
+        fullCtx.fillRect(0, 0, fullCanvas.width, fullCanvas.height);
+        
+        // Draw main canvas content at full resolution
+        fullCtx.drawImage(canvas, 0, 0);
         
         // Save the design
         const design = {
             id: Date.now(),
             date: new Date().toLocaleString(),
-            thumbnail: thumbnailCanvas.toDataURL('image/png'),
-            canvasData: canvas.toDataURL('image/png'),
+            thumbnail: thumbnailCanvas.toDataURL('image/png', 0.9), // Slightly compressed for storage
+            canvasData: fullCanvas.toDataURL('image/png', 1.0), // Full quality
             timestamp: Date.now()
         };
         
@@ -506,7 +569,7 @@ function saveDesign() {
         updateHistoryPanel();
         
         // Show success feedback
-        showToast('Design saved successfully!');
+        showToast('High-resolution design saved! 💾');
         
     } catch (error) {
         console.error('Error saving design:', error);
@@ -567,16 +630,19 @@ function loadDesign(designId) {
         
         const img = new Image();
         img.onload = function() {
-            // Clear canvas and redraw hexagon
+            // Clear canvas completely
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Draw the saved design
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            // Draw the saved design at the correct scale
+            // The saved image might be at a different resolution, so scale appropriately
+            ctx.drawImage(img, 0, 0, img.width, img.height, 
+                         0, 0, parseFloat(canvas.style.width) || canvas.width, 
+                         parseFloat(canvas.style.height) || canvas.height);
             
             // Redraw hexagon outline on top
             drawHexagon();
             
-            showToast('Design loaded!');
+            showToast('High-resolution design loaded! ✨');
             toggleHistoryPanel(); // Close the panel
         };
         
