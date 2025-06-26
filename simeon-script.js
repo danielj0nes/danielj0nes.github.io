@@ -182,14 +182,32 @@ function stopDrawing() {
     isDrawing = false;
 }
 
-// Check if a point is inside the hexagon (simplified)
+// Check if a point is inside the hexagon using proper polygon collision detection
 function isPointInHexagon(x, y) {
-    const dx = x - centerX;
-    const dy = y - centerY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+    // Generate hexagon vertices
+    const vertices = [];
+    for (let i = 0; i < 6; i++) {
+        const angle = (i * Math.PI) / 3;
+        vertices.push({
+            x: centerX + radius * Math.cos(angle),
+            y: centerY + radius * Math.sin(angle)
+        });
+    }
     
-    // Simple circular boundary check (slightly smaller than actual hexagon)
-    return distance <= radius * 0.9;
+    // Point-in-polygon algorithm (ray casting)
+    let inside = false;
+    for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+        const xi = vertices[i].x;
+        const yi = vertices[i].y;
+        const xj = vertices[j].x;
+        const yj = vertices[j].y;
+        
+        if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+            inside = !inside;
+        }
+    }
+    
+    return inside;
 }
 
 // Rainbow colors array for rainbow mode
