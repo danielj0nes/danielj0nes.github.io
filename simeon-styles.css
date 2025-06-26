@@ -58,15 +58,6 @@ h1 {
     display: block;
     margin: 0 auto;
     transition: all 0.3s ease;
-    
-    /* High-resolution canvas optimization */
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-    image-rendering: pixelated;
-    
-    /* Ensure sharp rendering on high-DPI displays */
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
 }
 
 #canvas:hover {
@@ -714,8 +705,6 @@ button:active {
     background-clip: text;
 }
 
-
-
 .history-content {
     flex: 1;
     padding: 20px;
@@ -964,12 +953,187 @@ button:active {
 
 .footer-copyright {
     margin: 0;
-    font-size: 0.7em;
+    font-size: 12px;
     font-weight: 400;
     color: #868e96;
+    margin-top: 16px;
 }
 
+/* Birthday Animation Styles */
+.birthday-animation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    animation: fadeInOut 8s ease-in-out;
+}
 
+@keyframes fadeInOut {
+    0% { opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.confetti-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.confetti {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: confettiFall 3s linear infinite;
+}
+
+@keyframes confettiFall {
+    0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+.birthday-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 
+        0 32px 64px rgba(0, 0, 0, 0.15),
+        0 8px 32px rgba(0, 0, 0, 0.1);
+    animation: bounceIn 1s ease-out;
+    max-width: 90%;
+    box-sizing: border-box;
+}
+
+@keyframes bounceIn {
+    0% {
+        transform: translate(-50%, -50%) scale(0.3);
+        opacity: 0;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.05);
+    }
+    70% {
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+.birthday-text {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-weight: 700;
+    margin: 8px 0;
+    color: #1a1a1a;
+    animation: textGlow 2s ease-in-out infinite alternate;
+}
+
+.birthday-text.main {
+    font-size: 2.2em;
+    background: linear-gradient(135deg, #ff6b6b, #4ecdc4, #45d168, #f9ca24, #6c5ce7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    background-size: 300% 100%;
+    animation: textGlow 2s ease-in-out infinite alternate, gradientShift 3s ease-in-out infinite;
+}
+
+.birthday-text:first-child,
+.birthday-text:last-child {
+    font-size: 1.8em;
+}
+
+.birthday-text:nth-child(3) {
+    font-size: 1.4em;
+}
+
+@keyframes textGlow {
+    0% {
+        text-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    }
+    100% {
+        text-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    }
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Mobile responsiveness for birthday animation */
+@media (max-width: 768px) {
+    .birthday-message {
+        padding: 24px 20px;
+        max-width: 95%;
+    }
+    
+    .birthday-text.main {
+        font-size: 1.8em;
+    }
+    
+    .birthday-text:first-child,
+    .birthday-text:last-child {
+        font-size: 1.5em;
+    }
+    
+    .birthday-text:nth-child(3) {
+        font-size: 1.2em;
+    }
+}
+
+@media (max-width: 480px) {
+    .birthday-message {
+        padding: 20px 16px;
+        border-radius: 16px;
+    }
+    
+    .birthday-text.main {
+        font-size: 1.5em;
+    }
+    
+    .birthday-text:first-child,
+    .birthday-text:last-child {
+        font-size: 1.3em;
+    }
+    
+    .birthday-text:nth-child(3) {
+        font-size: 1.1em;
+    }
+    
+    .confetti {
+        width: 6px;
+        height: 6px;
+    }
+}
 
 /* Mobile footer adjustments */
 @media (max-width: 768px) {

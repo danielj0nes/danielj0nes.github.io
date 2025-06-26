@@ -315,7 +315,7 @@ function exportImage() {
     
     // Create download link with high-quality PNG
     const link = document.createElement('a');
-    link.download = 'hexagon-symmetry-art-hd.png';
+    link.download = 'hexagon-symmetry-art.png';
     link.href = tempCanvas.toDataURL('image/png', 1.0); // Maximum quality
     
     // Trigger download
@@ -673,67 +673,119 @@ function deleteDesign(designId) {
 
 // Show toast notification
 function showToast(message) {
-    // Remove existing toast
-    const existingToast = document.querySelector('.toast');
-    if (existingToast) {
-        existingToast.remove();
-    }
-    
-    // Create new toast
+    // Create toast element
     const toast = document.createElement('div');
     toast.className = 'toast';
     toast.textContent = message;
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 12px 24px;
-        border-radius: 25px;
-        font-size: 14px;
-        font-weight: 500;
-        z-index: 10000;
-        animation: toastSlide 3s ease forwards;
-        backdrop-filter: blur(10px);
-    `;
+    
+    // Style the toast
+    toast.style.position = 'fixed';
+    toast.style.bottom = '20px';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
+    toast.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    toast.style.color = 'white';
+    toast.style.padding = '12px 24px';
+    toast.style.borderRadius = '24px';
+    toast.style.zIndex = '10000';
+    toast.style.fontSize = '14px';
+    toast.style.fontWeight = '500';
+    toast.style.backdropFilter = 'blur(10px)';
+    toast.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
+    toast.style.transition = 'all 0.3s ease';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(20px)';
     
     document.body.appendChild(toast);
     
-    // Remove after animation
+    // Animate in
     setTimeout(() => {
-        if (toast.parentNode) {
-            toast.remove();
-        }
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+    }, 100);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(20px)';
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
     }, 3000);
 }
 
-// CSS animation for toast (injected dynamically)
-if (!document.querySelector('#toast-styles')) {
-    const style = document.createElement('style');
-    style.id = 'toast-styles';
-    style.textContent = `
-        @keyframes toastSlide {
-            0% {
-                opacity: 0;
-                transform: translateX(-50%) translateY(20px);
-            }
-            10%, 90% {
-                opacity: 1;
-                transform: translateX(-50%) translateY(0);
-            }
-            100% {
-                opacity: 0;
-                transform: translateX(-50%) translateY(-20px);
-            }
-        }
-    `;
-    document.head.appendChild(style);
+// Birthday Animation Functions
+function createConfetti() {
+    const confettiContainer = document.querySelector('.confetti-container');
+    const colors = ['#ff6b6b', '#4ecdc4', '#45d168', '#f9ca24', '#6c5ce7', '#a55eea', '#fd79a8', '#00b894'];
+    
+    // Create 50 confetti pieces
+    for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.animationDelay = Math.random() * 3 + 's';
+        confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+        confettiContainer.appendChild(confetti);
+    }
+    
+    // Clean up confetti after animation
+    setTimeout(() => {
+        confettiContainer.innerHTML = '';
+    }, 5000);
 }
 
-// Initialize saved designs when page loads
+function startBirthdayAnimation() {
+    const birthdayAnimation = document.getElementById('birthdayAnimation');
+    
+    // Show the animation
+    birthdayAnimation.style.display = 'block';
+    
+    // Create confetti
+    createConfetti();
+    
+    // Hide the animation after 8 seconds
+    setTimeout(() => {
+        birthdayAnimation.style.display = 'none';
+    }, 8000);
+}
+
+// Check if birthday animation should be shown (only once per session)
+function checkBirthdayAnimation() {
+    const hasSeenBirthday = sessionStorage.getItem('hasSeenBirthdayAnimation');
+    
+    if (!hasSeenBirthday) {
+        // Wait 1 second after page load to show the animation
+        setTimeout(() => {
+            startBirthdayAnimation();
+            sessionStorage.setItem('hasSeenBirthdayAnimation', 'true');
+        }, 1000);
+    }
+}
+
+// Initialize everything when page loads
 document.addEventListener('DOMContentLoaded', function() {
     init();
     loadSavedDesigns();
-}); 
+    checkBirthdayAnimation();
+});
+
+// Also initialize on window load as fallback
+window.addEventListener('load', function() {
+    init();
+    // Don't run birthday animation again if it was already shown
+    if (!sessionStorage.getItem('hasSeenBirthdayAnimation')) {
+        setTimeout(() => {
+            startBirthdayAnimation();
+            sessionStorage.setItem('hasSeenBirthdayAnimation', 'true');
+        }, 1000);
+    }
+});
+
+// Initialize immediately if DOM is already loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+} 

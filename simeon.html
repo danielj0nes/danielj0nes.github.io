@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <meta name="description" content="Symmetry is nice. For Simeon.">
+    <meta name="description" content="Symmetry Drawing | Hexagons are the bestagons">
     <meta name="keywords" content="hexagon drawing, symmetry art, kaleidoscope patterns, geometric art, mandala creator, symmetric drawing, digital art tool, hexagon symmetry">
     <meta name="author" content="Daniel Gordon Jones">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Hexagon Symmetry Drawing">
+    <meta property="og:site_name" content="Symmetry Drawing">
     <meta property="og:url" content="https://portfolio.jones.ac/simeon.html">
-    <meta property="og:title" content="Hexagon Symmetry Drawing">
-    <meta property="og:description" content="For Simeon">
+    <meta property="og:title" content="Symmetry Drawing">
+    <meta property="og:description" content="Hexagons are the bestagons">
     <meta property="og:image" content="https://portfolio.jones.ac/icons/Daniel_Gordon_Jones_Logo.png">
     <meta property="og:image:alt" content="Hexagon Symmetry Drawing Tool">
     <meta property="og:locale" content="en_GB">
@@ -29,15 +29,19 @@
     <!-- External CSS -->
     <link rel="stylesheet" href="simeon-styles.css">
     
-    <title>Hexagon Symmetry Drawing - Create Beautiful Symmetric Art</title>
+    <title>Symmetry Drawing | Hexagons are the bestagons</title>
 </head>
 <body>
     <div class="container">
-        <h1>Hexagon Symmetry Drawing</h1>
-        <p class="subtitle">For Simeon (Herr Vogt)</p>
+        <h1>Symmetry Drawing</h1>
+        <p class="subtitle">
+            For Simeon (Herr Vogt)
+            <br>
+            <strong>Hexagons are the bestagons.</strong> More shapes and symmetry coming soon...
+        </p>
         
         <div class="instructions">
-            🎨 <strong>How to use:</strong> Click and drag to draw on the hexagon. Touch and drag on mobile. Enjoy ;)
+            🎨 <strong>How to use:</strong> Click and drag to draw on the hexagon. Touch and drag on mobile. Enjoy ;) 
         </div>
 
         <canvas id="canvas" width="600" height="600"></canvas>
@@ -87,6 +91,19 @@
 
     <!-- Overlay for history panel -->
     <div id="historyOverlay" class="history-overlay" onclick="toggleHistoryPanel()"></div>
+
+    <!-- Birthday Animation -->
+    <div id="birthdayAnimation" class="birthday-animation">
+        <div class="confetti-container">
+            <!-- Confetti will be dynamically generated -->
+        </div>
+        <div class="birthday-message">
+            <div class="birthday-text">🎉</div>
+            <div class="birthday-text main">Happy Birthday</div>
+            <div class="birthday-text">Simeon (Herr Vogt)!</div>
+            <div class="birthday-text">🎂</div>
+        </div>
+    </div>
 
     <!-- Footer -->
           <footer class="footer">
