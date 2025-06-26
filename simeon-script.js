@@ -733,6 +733,7 @@ function showToast(message) {
 }
 
 // Birthday Animation Functions
+/*
 function createConfetti() {
     const confettiContainer = document.querySelector('.confetti-container');
     const colors = ['#ff6b6b', '#4ecdc4', '#45d168', '#f9ca24', '#6c5ce7', '#a55eea', '#fd79a8', '#00b894'];
@@ -781,24 +782,27 @@ function checkBirthdayAnimation() {
         }, 1000);
     }
 }
+*/
 
 // Initialize everything when page loads
 document.addEventListener('DOMContentLoaded', function() {
     init();
     loadSavedDesigns();
-    checkBirthdayAnimation();
+    // checkBirthdayAnimation();
 });
 
 // Also initialize on window load as fallback
 window.addEventListener('load', function() {
     init();
     // Don't run birthday animation again if it was already shown
+    /*
     if (!sessionStorage.getItem('hasSeenBirthdayAnimation')) {
         setTimeout(() => {
             startBirthdayAnimation();
             sessionStorage.setItem('hasSeenBirthdayAnimation', 'true');
         }, 1000);
     }
+    */
 });
 
 // Initialize immediately if DOM is already loaded
