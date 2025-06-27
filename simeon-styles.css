@@ -960,7 +960,6 @@ button:active {
 }
 
 /* Birthday Animation Styles */
-/*
 .birthday-animation {
     position: fixed;
     top: 0;
@@ -1089,10 +1088,8 @@ button:active {
         background-position: 0% 50%;
     }
 }
-*/
 
 /* Mobile responsiveness for birthday animation */
-/*
 @media (max-width: 768px) {
     .birthday-message {
         padding: 24px 20px;
@@ -1137,7 +1134,6 @@ button:active {
         height: 6px;
     }
 }
-*/
 
 /* Mobile footer adjustments */
 @media (max-width: 768px) {
