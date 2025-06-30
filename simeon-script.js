@@ -74,22 +74,6 @@ function drawHexagon() {
     
     ctx.closePath();
     ctx.stroke();
-    
-    // Draw symmetry lines
-    ctx.strokeStyle = '#eee';
-    ctx.lineWidth = 1;
-    
-    // Draw the 3 symmetry axes
-    for (let i = 0; i < 3; i++) {
-        const angle = (i * Math.PI) / 3;
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.lineTo(
-            centerX + radius * Math.cos(angle),
-            centerY + radius * Math.sin(angle)
-        );
-        ctx.stroke();
-    }
 }
 
 // Add event listeners for drawing
@@ -238,7 +222,7 @@ function setRainbowMode() {
     });
     document.querySelector('.rainbow-btn').classList.add('active');
     
-    showToast('Rainbow mode activated! 🌈');
+    showToast(translations[currentLanguage].rainbowActivated);
 }
 
 // Set drawing color
@@ -342,7 +326,7 @@ function exportImage() {
     document.body.removeChild(link);
     
     // Show a toast to indicate the high-resolution export
-    showToast('High-resolution image exported! 📸');
+    showToast('Image exported! 📸');
 }
 
 // Initialize the application
@@ -568,9 +552,16 @@ function saveDesign() {
         fullCtx.drawImage(canvas, 0, 0);
         
         // Save the design
+        const locale = currentLanguage === 'de' ? 'de-DE' : 'en-GB';
         const design = {
             id: Date.now(),
-            date: new Date().toLocaleString(),
+            date: new Date().toLocaleString(locale, {
+                day: '2-digit',
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }),
             thumbnail: thumbnailCanvas.toDataURL('image/png', 0.9), // Slightly compressed for storage
             canvasData: fullCanvas.toDataURL('image/png', 1.0), // Full quality
             timestamp: Date.now()
@@ -587,11 +578,11 @@ function saveDesign() {
         updateHistoryPanel();
         
         // Show success feedback
-        showToast('High-resolution design saved! 💾');
+        showToast(translations[currentLanguage].designSaved);
         
     } catch (error) {
         console.error('Error saving design:', error);
-        showToast('Error saving design');
+        showToast(translations[currentLanguage].errorSaving);
     }
 }
 
@@ -619,8 +610,8 @@ function updateHistoryPanel() {
     if (savedDesigns.length === 0) {
         grid.innerHTML = `
             <div class="history-empty">
-                <p>No saved designs yet</p>
-                <span>Create and save your first design!</span>
+                <p data-translate="noDesigns">${translations[currentLanguage].noDesigns}</p>
+                <span data-translate="createFirst">${translations[currentLanguage].createFirst}</span>
             </div>
         `;
         return;
@@ -642,7 +633,7 @@ function loadDesign(designId) {
     try {
         const design = savedDesigns.find(d => d.id === designId);
         if (!design) {
-            showToast('Design not found');
+            showToast(translations[currentLanguage].designNotFound);
             return;
         }
         
@@ -660,19 +651,19 @@ function loadDesign(designId) {
             // Redraw hexagon outline on top
             drawHexagon();
             
-            showToast('High-resolution design loaded! ✨');
+            showToast(translations[currentLanguage].designLoaded);
             toggleHistoryPanel(); // Close the panel
         };
         
         img.onerror = function() {
-            showToast('Error loading design');
+            showToast(translations[currentLanguage].errorLoading);
         };
         
         img.src = design.canvasData;
         
     } catch (error) {
         console.error('Error loading design:', error);
-        showToast('Error loading design');
+        showToast(translations[currentLanguage].errorLoading);
     }
 }
 
@@ -682,10 +673,10 @@ function deleteDesign(designId) {
         savedDesigns = savedDesigns.filter(d => d.id !== designId);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(savedDesigns));
         updateHistoryPanel();
-        showToast('Design deleted');
+        showToast(translations[currentLanguage].designDeleted);
     } catch (error) {
         console.error('Error deleting design:', error);
-        showToast('Error deleting design');
+        showToast(translations[currentLanguage].errorDeleting);
     }
 }
 
@@ -732,73 +723,197 @@ function showToast(message) {
     }, 3000);
 }
 
-// Birthday Animation Functions
-function createConfetti() {
-    const confettiContainer = document.querySelector('.confetti-container');
-    const colors = ['#ff6b6b', '#4ecdc4', '#45d168', '#f9ca24', '#6c5ce7', '#a55eea', '#fd79a8', '#00b894'];
+// Language functionality
+let currentLanguage = 'en';
+
+const translations = {
+    en: {
+        title: "Symmetry Drawing",
+        subtitle1: "For Simeon (Herr Vogt)",
+        subtitle2: "Hexagons are the bestagons.",
+        subtitle3: "More shapes and symmetry coming soon...",
+        instructions: "How to use: Click and drag to draw on the hexagon. Touch and drag on mobile. Enjoy ;)",
+        clearBtn: "Clear Canvas",
+        exportBtn: "Export PNG",
+        saveBtn: "Save Design",
+        historyBtn: "History",
+        colorsLabel: "Colours:",
+        brushSizeLabel: "Brush Size:",
+        savedDesigns: "Saved Designs",
+        noDesigns: "No saved designs yet",
+        createFirst: "Create and save your first design!",
+        bestagonsTitle: "Bestagons",
+        bestagonsSubtitle: "A collection of the best hexagons",
+        developedBy: "Developed by",
+        githubLink: "Click here to view the code on GitHub :)",
+        // Toast messages
+        rainbowActivated: "Rainbow mode activated! 🌈",
+        designSaved: "Design saved! ✨",
+        designLoaded: "Design loaded! ✨",
+        designDeleted: "Design deleted",
+        designNotFound: "Design not found",
+        errorLoading: "Error loading design",
+        errorDeleting: "Error deleting design",
+        errorSaving: "Error saving design"
+    },
+    de: {
+        title: "Symmetrie-Zeichnung",
+        subtitle1: "Für Simeon (Herr Vogt)",
+        subtitle2: "Hexagons sind die Bestagons.",
+        subtitle3: "Weitere Formen und Symmetrien kommen bald...",
+        instructions: "Anleitung: Klicken und ziehen, um auf das Sechseck zu zeichnen. Auf Mobilgeräten berühren und ziehen. Viel Spass ;)",
+        clearBtn: "Leinwand Löschen",
+        exportBtn: "PNG Exportieren",
+        saveBtn: "Design Speichern",
+        historyBtn: "Verlauf",
+        colorsLabel: "Farben:",
+        brushSizeLabel: "Pinselgrösse:",
+        savedDesigns: "Gespeicherte Designs",
+        noDesigns: "Noch keine Designs gespeichert",
+        createFirst: "Erstelle und speichere dein erstes Design!",
+        bestagonsTitle: "Bestagons",
+        bestagonsSubtitle: "Eine Sammlung der besten Hexagone",
+        developedBy: "Entwickelt von",
+        githubLink: "Hier klicken, um den Code auf GitHub anzusehen :)",
+        // Toast messages
+        rainbowActivated: "Regenbogen-Modus aktiviert! 🌈",
+        designSaved: "Design gespeichert! ✨",
+        designLoaded: "Design geladen! ✨",
+        designDeleted: "Design gelöscht",
+        designNotFound: "Design nicht gefunden",
+        errorLoading: "Fehler beim Laden des Designs",
+        errorDeleting: "Fehler beim Löschen des Designs",
+        errorSaving: "Fehler beim Speichern des Designs"
+    }
+};
+
+function toggleLanguage() {
+    // Switch to the opposite language
+    const newLanguage = currentLanguage === 'en' ? 'de' : 'en';
+    switchLanguage(newLanguage);
+}
+
+function switchLanguage(lang) {
+    currentLanguage = lang;
     
-    // Create 50 confetti pieces
-    for (let i = 0; i < 50; i++) {
-        const confetti = document.createElement('div');
-        confetti.className = 'confetti';
-        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-        confetti.style.left = Math.random() * 100 + '%';
-        confetti.style.animationDelay = Math.random() * 3 + 's';
-        confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
-        confettiContainer.appendChild(confetti);
+    // Update toggle button text
+    updateLanguageToggleButton();
+    
+    // Update all translatable elements
+    document.querySelectorAll('[data-translate]').forEach(element => {
+        const key = element.getAttribute('data-translate');
+        if (translations[lang] && translations[lang][key]) {
+            element.textContent = translations[lang][key];
+        }
+    });
+    
+    // Update history panel if it's open
+    updateHistoryPanel();
+    
+    // Save language preference
+    localStorage.setItem('selectedLanguage', lang);
+    
+    // Update page title and meta description
+    updatePageMeta();
+}
+
+function updateLanguageToggleButton() {
+    const toggleBtn = document.getElementById('langToggleBtn');
+    const currentSpan = toggleBtn.querySelector('.lang-current');
+    const nextSpan = toggleBtn.querySelector('.lang-next');
+    
+    if (currentLanguage === 'en') {
+        currentSpan.textContent = 'English';
+        nextSpan.textContent = 'Deutsch';
+    } else {
+        currentSpan.textContent = 'Deutsch';
+        nextSpan.textContent = 'English';
+    }
+}
+
+function updatePageMeta() {
+    const title = currentLanguage === 'en' 
+        ? "Symmetry Drawing | Hexagons are the bestagons"
+        : "Symmetrie-Zeichnung | Hexagons are the bestagons";
+    
+    const description = currentLanguage === 'en'
+        ? "Symmetry Drawing | Hexagons are the bestagons"
+        : "Symmetrie-Zeichnung | Hexagons are the bestagons";
+    
+    document.title = title;
+    document.querySelector('meta[name="description"]').setAttribute('content', description);
+    document.querySelector('meta[property="og:title"]').setAttribute('content', translations[currentLanguage].title);
+    document.querySelector('meta[property="og:description"]').setAttribute('content', translations[currentLanguage].subtitle2);
+}
+
+function initializeLanguage() {
+    // Load saved language preference or default to English
+    const savedLanguage = localStorage.getItem('selectedLanguage') || 'en';
+    switchLanguage(savedLanguage);
+}
+
+// Slideshow functionality
+let currentSlideIndex = 0;
+const totalSlides = 10;
+
+function showSlide(index) {
+    const slides = document.querySelectorAll('.slide');
+    const indicators = document.querySelectorAll('.indicator');
+    
+    // Hide all slides
+    slides.forEach(slide => {
+        slide.classList.remove('active');
+    });
+    
+    // Remove active from all indicators
+    indicators.forEach(indicator => {
+        indicator.classList.remove('active');
+    });
+    
+    // Ensure index is within bounds
+    if (index >= totalSlides) {
+        currentSlideIndex = 0;
+    } else if (index < 0) {
+        currentSlideIndex = totalSlides - 1;
+    } else {
+        currentSlideIndex = index;
     }
     
-    // Clean up confetti after animation
-    setTimeout(() => {
-        confettiContainer.innerHTML = '';
+    // Show current slide and activate indicator
+    if (slides[currentSlideIndex]) {
+        slides[currentSlideIndex].classList.add('active');
+    }
+    if (indicators[currentSlideIndex]) {
+        indicators[currentSlideIndex].classList.add('active');
+    }
+}
+
+function changeSlide(direction) {
+    showSlide(currentSlideIndex + direction);
+}
+
+function currentSlide(index) {
+    showSlide(index - 1); // Convert to 0-based index
+}
+
+// Auto-advance slideshow every 5 seconds
+function startSlideshow() {
+    setInterval(() => {
+        changeSlide(1);
     }, 5000);
-}
-
-function startBirthdayAnimation() {
-    const birthdayAnimation = document.getElementById('birthdayAnimation');
-    
-    // Show the animation
-    birthdayAnimation.style.display = 'block';
-    
-    // Create confetti
-    createConfetti();
-    
-    // Hide the animation after 8 seconds
-    setTimeout(() => {
-        birthdayAnimation.style.display = 'none';
-    }, 8000);
-}
-
-// Check if birthday animation should be shown (only once per session)
-function checkBirthdayAnimation() {
-    const hasSeenBirthday = sessionStorage.getItem('hasSeenBirthdayAnimation');
-    
-    if (!hasSeenBirthday) {
-        // Wait 1 second after page load to show the animation
-        setTimeout(() => {
-            startBirthdayAnimation();
-            sessionStorage.setItem('hasSeenBirthdayAnimation', 'true');
-        }, 1000);
-    }
 }
 
 // Initialize everything when page loads
 document.addEventListener('DOMContentLoaded', function() {
     init();
     loadSavedDesigns();
-    checkBirthdayAnimation();
+    initializeLanguage(); // Initialize language settings
+    startSlideshow(); // Start the automatic slideshow
 });
 
 // Also initialize on window load as fallback
 window.addEventListener('load', function() {
     init();
-    // Don't run birthday animation again if it was already shown
-    if (!sessionStorage.getItem('hasSeenBirthdayAnimation')) {
-        setTimeout(() => {
-            startBirthdayAnimation();
-            sessionStorage.setItem('hasSeenBirthdayAnimation', 'true');
-        }, 1000);
-    }
 });
 
 // Initialize immediately if DOM is already loaded
