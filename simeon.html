@@ -59,6 +59,7 @@
         
         <div class="controls">
             <button class="clear-btn" onclick="clearCanvas()" data-translate="clearBtn">Clear Canvas</button>
+            <button class="undo-btn" onclick="undoLastAction()" data-translate="undoBtn">Undo</button>
             <button class="export-btn" onclick="exportImage()" data-translate="exportBtn">Export PNG</button>
             <button class="save-btn" onclick="saveDesign()" data-translate="saveBtn">Save Design</button>
             <button class="history-btn" onclick="toggleHistoryPanel()" data-translate="historyBtn">History</button>
@@ -81,6 +82,41 @@
             <label for="brushSize" data-translate="brushSizeLabel">Brush Size:</label>
             <input type="range" id="brushSize" min="1" max="10" value="3" oninput="setBrushSize(this.value)">
             <span id="brushSizeValue">3</span>px
+        </div>
+
+        <!-- Color Cycling Section -->
+        <div class="color-cycling">
+            <div class="color-cycling-header">
+                <span style="color: #666; font-weight: bold;" data-translate="colorCyclingLabel">Colour Cycling:</span>
+                <span class="cycling-instructions" data-translate="cyclingInstructions">Press D/F to cycle through your preset colours</span>
+            </div>
+            <div class="preset-colors">
+                <div class="preset-slot" data-slot="0" onclick="selectPresetSlot(0)">
+                    <div class="preset-color empty" data-translate="clickToSet">Click to set</div>
+                    <div class="preset-index">1</div>
+                </div>
+                <div class="preset-slot" data-slot="1" onclick="selectPresetSlot(1)">
+                    <div class="preset-color empty" data-translate="clickToSet">Click to set</div>
+                    <div class="preset-index">2</div>
+                </div>
+                <div class="preset-slot" data-slot="2" onclick="selectPresetSlot(2)">
+                    <div class="preset-color empty" data-translate="clickToSet">Click to set</div>
+                    <div class="preset-index">3</div>
+                </div>
+                <div class="preset-slot" data-slot="3" onclick="selectPresetSlot(3)">
+                    <div class="preset-color empty" data-translate="clickToSet">Click to set</div>
+                    <div class="preset-index">4</div>
+                </div>
+                <div class="preset-slot" data-slot="4" onclick="selectPresetSlot(4)">
+                    <div class="preset-color empty" data-translate="clickToSet">Click to set</div>
+                    <div class="preset-index">5</div>
+                </div>
+                <button class="clear-presets-btn" onclick="clearAllPresets()" data-translate="clearPresets">Clear All</button>
+            </div>
+            <div class="cycling-info">
+                <span class="current-preset-indicator" data-translate="currentColor">Current: </span>
+                <span id="currentPresetDisplay">None</span>
+            </div>
         </div>
     </div>
 
@@ -110,36 +146,7 @@
         
         <div class="slideshow-container">
             <div class="slideshow-wrapper">
-                <div class="slide active">
-                    <img src="best_hexagons/1.jpg" alt="Bestagon 1" class="slide-image">
-                </div>
-                <div class="slide">
-                    <img src="best_hexagons/2.jpg" alt="Bestagon 2" class="slide-image">
-                </div>
-                <div class="slide">
-                    <img src="best_hexagons/3.jpg" alt="Bestagon 3" class="slide-image">
-                </div>
-                <div class="slide">
-                    <img src="best_hexagons/4.jpg" alt="Bestagon 4" class="slide-image">
-                </div>
-                <div class="slide">
-                    <img src="best_hexagons/5.jpg" alt="Bestagon 5" class="slide-image">
-                </div>
-                <div class="slide">
-                    <img src="best_hexagons/6.jpg" alt="Bestagon 6" class="slide-image">
-                </div>
-                <div class="slide">
-                    <img src="best_hexagons/7.jpg" alt="Bestagon 7" class="slide-image">
-                </div>
-                <div class="slide">
-                    <img src="best_hexagons/8.jpg" alt="Bestagon 8" class="slide-image">
-                </div>
-                <div class="slide">
-                    <img src="best_hexagons/9.jpg" alt="Bestagon 9" class="slide-image">
-                </div>
-                <div class="slide">
-                    <img src="best_hexagons/10.jpg" alt="Bestagon 10" class="slide-image">
-                </div>
+                <!-- Slides will be dynamically generated -->
             </div>
             
             <!-- Navigation arrows -->
@@ -148,16 +155,7 @@
             
             <!-- Slide indicators -->
             <div class="slide-indicators">
-                <span class="indicator active" onclick="currentSlide(1)"></span>
-                <span class="indicator" onclick="currentSlide(2)"></span>
-                <span class="indicator" onclick="currentSlide(3)"></span>
-                <span class="indicator" onclick="currentSlide(4)"></span>
-                <span class="indicator" onclick="currentSlide(5)"></span>
-                <span class="indicator" onclick="currentSlide(6)"></span>
-                <span class="indicator" onclick="currentSlide(7)"></span>
-                <span class="indicator" onclick="currentSlide(8)"></span>
-                <span class="indicator" onclick="currentSlide(9)"></span>
-                <span class="indicator" onclick="currentSlide(10)"></span>
+                <!-- Indicators will be dynamically generated -->
             </div>
         </div>
     </div>

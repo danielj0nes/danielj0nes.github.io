@@ -5,6 +5,11 @@ let isDrawing = false;
 let currentColor = '#000';
 let currentBrushSize = 3;
 let isRainbowMode = false;
+let lastDrawPoints = null; // Store last drawing position for line drawing
+
+// Undo functionality
+let canvasHistory = [];
+let maxHistoryStates = 20;
 
 // Hexagon properties
 let centerX, centerY, radius;
@@ -20,6 +25,8 @@ function init() {
     // Reset brush slider to default position
     document.getElementById('brushSize').value = 3;
     document.getElementById('brushSizeValue').textContent = '3';
+    // Save initial blank canvas state
+    saveCanvasState();
 }
 
 // Setup canvas dimensions based on screen size with high-resolution support
@@ -90,6 +97,9 @@ function addEventListeners() {
     
     // Window resize event
     window.addEventListener('resize', handleResize);
+    
+    // Keyboard events for undo (Ctrl+Z)
+    document.addEventListener('keydown', handleKeydown);
 }
 
 // Handle window resize
@@ -114,6 +124,24 @@ function handleResize() {
     drawHexagon();
 }
 
+// Handle keyboard events
+function handleKeydown(e) {
+    // Check for Ctrl+Z (or Cmd+Z on Mac)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault(); // Prevent browser's default undo behavior
+        undoLastAction();
+    }
+    
+    // Color cycling with D and F keys
+    if (e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        cyclePresetColor(1); // Forward
+    } else if (e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        cyclePresetColor(-1); // Backward
+    }
+}
+
 function handleTouch(e) {
     e.preventDefault();
     const touch = e.touches[0];
@@ -133,7 +161,10 @@ function handleTouch(e) {
 
 function startDrawing(e) {
     isDrawing = true;
-    draw(e);
+    lastDrawPoints = null; // Reset for new stroke
+    // Save canvas state before starting to draw (for undo functionality)
+    saveCanvasState();
+    draw(e); // Draw initial point
 }
 
 function draw(e) {
@@ -158,12 +189,13 @@ function draw(e) {
     
     // Check if point is inside hexagon
     if (isPointInHexagon(x, y)) {
-        drawSymmetricPoints(x, y);
+        drawSymmetricLines(x, y);
     }
 }
 
 function stopDrawing() {
     isDrawing = false;
+    lastDrawPoints = null; // Reset for next stroke
 }
 
 // Check if a point is inside the hexagon using proper polygon collision detection
@@ -215,12 +247,16 @@ const rainbowColors = [
 // Set rainbow mode
 function setRainbowMode() {
     isRainbowMode = true;
+    currentPresetIndex = -1; // Reset preset selection when activating rainbow mode
     
     // Update active color button
     document.querySelectorAll('.color-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     document.querySelector('.rainbow-btn').classList.add('active');
+    
+    // Update preset display
+    updatePresetDisplay();
     
     showToast(translations[currentLanguage].rainbowActivated);
 }
@@ -229,12 +265,16 @@ function setRainbowMode() {
 function setColor(color) {
     currentColor = color;
     isRainbowMode = false;
+    currentPresetIndex = -1; // Reset preset selection when manually selecting color
     
     // Update active color button
     document.querySelectorAll('.color-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     event.target.classList.add('active');
+    
+    // Update preset display
+    updatePresetDisplay();
 }
 
 // Get current drawing color (with rainbow mode support)
@@ -246,19 +286,37 @@ function getCurrentColor() {
     return currentColor;
 }
 
-// Draw points with 6-fold rotational symmetry
-function drawSymmetricPoints(x, y) {
-    const points = getSymmetricPoints(x, y);
+// Draw lines with 6-fold rotational symmetry
+function drawSymmetricLines(x, y) {
+    const currentPoints = getSymmetricPoints(x, y);
     
-    // Get the color for this brush stroke (same color for all symmetric points)
+    // Get the color for this brush stroke
     const strokeColor = getCurrentColor();
-    ctx.fillStyle = strokeColor;
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = currentBrushSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     
-    points.forEach(point => {
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, currentBrushSize / 2, 0, Math.PI * 2);
-        ctx.fill();
-    });
+    if (lastDrawPoints) {
+        // Draw lines from last position to current position for all symmetric points
+        for (let i = 0; i < currentPoints.length; i++) {
+            ctx.beginPath();
+            ctx.moveTo(lastDrawPoints[i].x, lastDrawPoints[i].y);
+            ctx.lineTo(currentPoints[i].x, currentPoints[i].y);
+            ctx.stroke();
+        }
+    } else {
+        // First point of stroke - draw dots to start the line
+        ctx.fillStyle = strokeColor;
+        currentPoints.forEach(point => {
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, currentBrushSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+    
+    // Store current points for next draw call
+    lastDrawPoints = currentPoints;
 }
 
 // Calculate all 6 symmetric points using rotational symmetry
@@ -282,10 +340,44 @@ function getSymmetricPoints(x, y) {
     return points;
 }
 
+// Save current canvas state for undo functionality
+function saveCanvasState() {
+    // Save the current canvas state
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    canvasHistory.push(imageData);
+    
+    // Limit history to prevent memory issues
+    if (canvasHistory.length > maxHistoryStates) {
+        canvasHistory.shift(); // Remove the oldest state
+    }
+}
+
+// Undo the last drawing action
+function undoLastAction() {
+    if (canvasHistory.length > 0) {
+        // Get the previous state
+        const previousState = canvasHistory.pop();
+        
+        // Restore the previous state
+        ctx.putImageData(previousState, 0, 0);
+        
+        // Redraw the hexagon outline
+        drawHexagon();
+        
+        showToast(translations[currentLanguage].undoSuccess);
+    } else {
+        showToast(translations[currentLanguage].nothingToUndo);
+    }
+}
+
 // Clear the canvas
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawHexagon();
+    
+    // Clear undo history and save blank state as new starting point
+    canvasHistory = [];
+    saveCanvasState();
 }
 
 // Set brush size
@@ -293,6 +385,14 @@ function setBrushSize(size) {
     currentBrushSize = parseInt(size);
     document.getElementById('brushSizeValue').textContent = size;
 }
+
+
+
+
+
+
+
+
 
 // Export canvas as PNG
 function exportImage() {
@@ -651,6 +751,10 @@ function loadDesign(designId) {
             // Redraw hexagon outline on top
             drawHexagon();
             
+            // Clear undo history and save this as new starting point
+            canvasHistory = [];
+            saveCanvasState();
+            
             showToast(translations[currentLanguage].designLoaded);
             toggleHistoryPanel(); // Close the panel
         };
@@ -723,6 +827,151 @@ function showToast(message) {
     }, 3000);
 }
 
+// Color cycling functionality
+let presetColors = ['', '', '', '', '']; // 5 preset slots
+let currentPresetIndex = -1; // -1 means no preset is currently active
+let selectedPresetSlot = -1; // Which slot is currently selected for setting
+
+// Select a preset slot to set its color
+function selectPresetSlot(slotIndex) {
+    // If slot is empty, set it to current color
+    if (presetColors[slotIndex] === '') {
+        if (currentColor !== '#000' || !isRainbowMode) {
+            presetColors[slotIndex] = isRainbowMode ? '#ff0000' : currentColor;
+            updatePresetDisplay();
+            showToast(translations[currentLanguage].presetColorSet + ' ' + (slotIndex + 1));
+        } else {
+            showToast(translations[currentLanguage].selectColorFirst);
+        }
+    } else {
+        // If slot has a color, activate it
+        currentColor = presetColors[slotIndex];
+        isRainbowMode = false;
+        currentPresetIndex = slotIndex;
+        updatePresetDisplay();
+        updateColorButtons();
+        showToast(translations[currentLanguage].presetActivated + ' ' + (slotIndex + 1));
+    }
+}
+
+// Cycle through preset colors with D/F keys
+function cyclePresetColor(direction) {
+    // Get available preset colors (non-empty slots)
+    const availablePresets = [];
+    presetColors.forEach((color, index) => {
+        if (color !== '') {
+            availablePresets.push({ color, index });
+        }
+    });
+    
+    if (availablePresets.length === 0) {
+        showToast(translations[currentLanguage].noPresetsSet);
+        return;
+    }
+    
+    // Find current position in available presets
+    let currentPos = -1;
+    if (currentPresetIndex !== -1) {
+        currentPos = availablePresets.findIndex(preset => preset.index === currentPresetIndex);
+    }
+    
+    // Calculate next position
+    let nextPos;
+    if (currentPos === -1) {
+        // No preset currently active, start from first or last
+        nextPos = direction > 0 ? 0 : availablePresets.length - 1;
+    } else {
+        nextPos = (currentPos + direction + availablePresets.length) % availablePresets.length;
+    }
+    
+    // Activate the preset
+    const selectedPreset = availablePresets[nextPos];
+    currentColor = selectedPreset.color;
+    isRainbowMode = false;
+    currentPresetIndex = selectedPreset.index;
+    
+    updatePresetDisplay();
+    updateColorButtons();
+    showToast(translations[currentLanguage].cycledToPreset + ' ' + (selectedPreset.index + 1));
+}
+
+// Update the visual display of preset colors and current selection
+function updatePresetDisplay() {
+    for (let i = 0; i < 5; i++) {
+        const slot = document.querySelector(`[data-slot="${i}"]`);
+        const colorDiv = slot.querySelector('.preset-color');
+        
+        if (presetColors[i] === '') {
+            colorDiv.style.backgroundColor = '';
+            colorDiv.classList.add('empty');
+            colorDiv.textContent = translations[currentLanguage].clickToSet;
+        } else {
+            colorDiv.style.backgroundColor = presetColors[i];
+            colorDiv.classList.remove('empty');
+            colorDiv.textContent = '';
+        }
+        
+        // Update active state
+        if (i === currentPresetIndex) {
+            slot.classList.add('active');
+        } else {
+            slot.classList.remove('active');
+        }
+    }
+    
+    // Update current preset display
+    const currentDisplay = document.getElementById('currentPresetDisplay');
+    if (currentPresetIndex !== -1) {
+        currentDisplay.textContent = `Preset ${currentPresetIndex + 1}`;
+        currentDisplay.style.backgroundColor = presetColors[currentPresetIndex];
+        currentDisplay.style.color = getContrastColor(presetColors[currentPresetIndex]);
+    } else {
+        currentDisplay.textContent = translations[currentLanguage].none;
+        currentDisplay.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+        currentDisplay.style.color = '#666';
+    }
+}
+
+// Update color buttons to reflect current selection
+function updateColorButtons() {
+    document.querySelectorAll('.color-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    if (!isRainbowMode) {
+        // Find matching color button
+        const matchingBtn = Array.from(document.querySelectorAll('.color-btn')).find(btn => {
+            const btnColor = btn.style.backgroundColor || btn.style.background;
+            return rgbToHex(btnColor) === currentColor || btnColor === currentColor;
+        });
+        
+        if (matchingBtn) {
+            matchingBtn.classList.add('active');
+        }
+    }
+}
+
+// Clear all preset colors
+function clearAllPresets() {
+    presetColors = ['', '', '', '', ''];
+    currentPresetIndex = -1;
+    updatePresetDisplay();
+    showToast(translations[currentLanguage].presetsCleared);
+}
+
+// Get contrasting text color for a background color
+function getContrastColor(hexColor) {
+    // Convert hex to RGB
+    const r = parseInt(hexColor.substr(1, 2), 16);
+    const g = parseInt(hexColor.substr(3, 2), 16);
+    const b = parseInt(hexColor.substr(5, 2), 16);
+    
+    // Calculate luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    
+    return luminance > 0.5 ? '#000000' : '#ffffff';
+}
+
 // Language functionality
 let currentLanguage = 'en';
 
@@ -734,6 +983,7 @@ const translations = {
         subtitle3: "More shapes and symmetry coming soon...",
         instructions: "How to use: Click and drag to draw on the hexagon. Touch and drag on mobile. Enjoy ;)",
         clearBtn: "Clear Canvas",
+        undoBtn: "Undo",
         exportBtn: "Export PNG",
         saveBtn: "Save Design",
         historyBtn: "History",
@@ -754,7 +1004,22 @@ const translations = {
         designNotFound: "Design not found",
         errorLoading: "Error loading design",
         errorDeleting: "Error deleting design",
-        errorSaving: "Error saving design"
+        errorSaving: "Error saving design",
+        undoSuccess: "Undo successful! ↶",
+        nothingToUndo: "Nothing to undo",
+        // Colour cycling
+        colorCyclingLabel: "Colour Cycling:",
+        cyclingInstructions: "Press D/F to cycle through your preset colours",
+        clickToSet: "Click to set",
+        clearPresets: "Clear All",
+        currentColor: "Current: ",
+        none: "None",
+        presetColorSet: "Preset colour set for slot",
+        selectColorFirst: "Select a colour first",
+        presetActivated: "Preset activated:",
+        noPresetsSet: "No preset colours set",
+        cycledToPreset: "Cycled to preset",
+        presetsCleared: "All presets cleared"
     },
     de: {
         title: "Symmetrie-Zeichnung",
@@ -763,6 +1028,7 @@ const translations = {
         subtitle3: "Weitere Formen und Symmetrien kommen bald...",
         instructions: "Anleitung: Klicken und ziehen, um auf das Sechseck zu zeichnen. Auf Mobilgeräten berühren und ziehen. Viel Spass ;)",
         clearBtn: "Leinwand Löschen",
+        undoBtn: "Rückgängig",
         exportBtn: "PNG Exportieren",
         saveBtn: "Design Speichern",
         historyBtn: "Verlauf",
@@ -783,7 +1049,22 @@ const translations = {
         designNotFound: "Design nicht gefunden",
         errorLoading: "Fehler beim Laden des Designs",
         errorDeleting: "Fehler beim Löschen des Designs",
-        errorSaving: "Fehler beim Speichern des Designs"
+        errorSaving: "Fehler beim Speichern des Designs",
+        undoSuccess: "Rückgängig erfolgreich! ↶",
+        nothingToUndo: "Nichts rückgängig zu machen",
+        // Color cycling
+        colorCyclingLabel: "Farb-Cycling:",
+        cyclingInstructions: "Drücke D/F um durch deine voreingestellten Farben zu wechseln",
+        clickToSet: "Klicken zum Setzen",
+        clearPresets: "Alle Löschen",
+        currentColor: "Aktuell: ",
+        none: "Keine",
+        presetColorSet: "Voreinstellung gesetzt für Slot",
+        selectColorFirst: "Wähle zuerst eine Farbe",
+        presetActivated: "Voreinstellung aktiviert:",
+        noPresetsSet: "Keine Farbvoreinstellungen gesetzt",
+        cycledToPreset: "Gewechselt zu Voreinstellung",
+        presetsCleared: "Alle Voreinstellungen gelöscht"
     }
 };
 
@@ -854,7 +1135,8 @@ function initializeLanguage() {
 
 // Slideshow functionality
 let currentSlideIndex = 0;
-const totalSlides = 10;
+let totalSlides = 0;
+let availableImages = [];
 
 function showSlide(index) {
     const slides = document.querySelectorAll('.slide');
@@ -896,11 +1178,105 @@ function currentSlide(index) {
     showSlide(index - 1); // Convert to 0-based index
 }
 
-// Auto-advance slideshow every 5 seconds
+// Dynamically discover available bestagon images
+function discoverBestagonImages() {
+    return new Promise((resolve) => {
+        const images = [];
+        let imageIndex = 1;
+        
+        function checkNextImage() {
+            const img = new Image();
+            const imagePath = `best_hexagons/${imageIndex}.jpg`;
+            
+            img.onload = function() {
+                images.push({
+                    path: imagePath,
+                    index: imageIndex,
+                    alt: `Bestagon ${imageIndex}`
+                });
+                imageIndex++;
+                checkNextImage();
+            };
+            
+            img.onerror = function() {
+                // No more images found, resolve with what we have
+                resolve(images);
+            };
+            
+            img.src = imagePath;
+        }
+        
+        checkNextImage();
+    });
+}
+
+// Initialize the dynamic slideshow
+async function initializeBestagonSlideshow() {
+    try {
+        availableImages = await discoverBestagonImages();
+        totalSlides = availableImages.length;
+        
+        if (totalSlides === 0) {
+            console.warn('No bestagon images found');
+            return;
+        }
+        
+        // Create slides dynamically
+        createSlideshowElements();
+        
+        // Start the slideshow
+        showSlide(0);
+        startSlideshow();
+        
+    } catch (error) {
+        console.error('Error initializing bestagon slideshow:', error);
+    }
+}
+
+// Create slideshow HTML elements dynamically
+function createSlideshowElements() {
+    const slideshowWrapper = document.querySelector('.slideshow-wrapper');
+    const slideIndicators = document.querySelector('.slide-indicators');
+    
+    if (!slideshowWrapper || !slideIndicators) {
+        console.warn('Slideshow elements not found');
+        return;
+    }
+    
+    // Clear existing slides and indicators
+    slideshowWrapper.innerHTML = '';
+    slideIndicators.innerHTML = '';
+    
+    // Create slides
+    availableImages.forEach((imageData, index) => {
+        const slide = document.createElement('div');
+        slide.className = index === 0 ? 'slide active' : 'slide';
+        
+        const img = document.createElement('img');
+        img.src = imageData.path;
+        img.alt = imageData.alt;
+        img.className = 'slide-image';
+        
+        slide.appendChild(img);
+        slideshowWrapper.appendChild(slide);
+    });
+    
+    // Create indicators
+    availableImages.forEach((_, index) => {
+        const indicator = document.createElement('span');
+        indicator.className = index === 0 ? 'indicator active' : 'indicator';
+        indicator.onclick = () => currentSlide(index + 1);
+        slideIndicators.appendChild(indicator);
+    });
+}
+
+// Auto-advance slideshow every 7 seconds (slower than before)
 function startSlideshow() {
+    if (totalSlides <= 1) return; // Don't auto-advance if only one or no images
+    
     setInterval(() => {
         changeSlide(1);
-    }, 5000);
+    }, 7000); // Increased from 5000ms to 7000ms
 }
 
 // Initialize everything when page loads
@@ -908,7 +1284,8 @@ document.addEventListener('DOMContentLoaded', function() {
     init();
     loadSavedDesigns();
     initializeLanguage(); // Initialize language settings
-    startSlideshow(); // Start the automatic slideshow
+    updatePresetDisplay(); // Initialize preset display
+    initializeBestagonSlideshow(); // Initialize dynamic slideshow
 });
 
 // Also initialize on window load as fallback
