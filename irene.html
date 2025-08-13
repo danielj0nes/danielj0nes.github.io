@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Alphabet Dot-to-Dot Generator</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --brand: #2563eb;
+      --line: #e2e8f0;
+    }
+
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    p.desc { color: var(--muted); margin-top: 0; }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    @media (min-width: 720px) {
+      .controls { grid-template-columns: 1.2fr 1fr 1fr 1fr; }
+    }
+
+    .control {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label { font-weight: 600; font-size: 14px; }
+    .hint { color: var(--muted); font-size: 12px; }
+
+    input[type="file"] {
+      padding: 8px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+
+    input[type="range"] { width: 100%; }
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--brand);
+      background: var(--brand);
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn.secondary { background: transparent; color: var(--brand); }
+
+    .outputs {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    @media (min-width: 900px) {
+      .outputs { grid-template-columns: 1fr 1fr; }
+    }
+
+    .canvas-wrap { display: flex; flex-direction: column; gap: 8px; }
+    .canvas-title { font-weight: 600; color: var(--muted); }
+    canvas { width: 100%; height: auto; background: white; border: 1px solid var(--line); border-radius: 8px; touch-action: none; }
+
+    .footer { margin-top: 20px; color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Alphabet Dot‑to‑Dot Generator</h1>
+    <p class="desc">Upload an image and generate a printable dot‑to‑dot with up to 26 labeled dots, plus a black‑and‑white stencil.</p>
+
+    <div class="panel">
+      <div class="controls">
+        <div class="control">
+          <label for="file">Upload image</label>
+          <input id="file" type="file" accept="image/*" />
+          <div class="hint">Large images are auto‑scaled for best results.</div>
+        </div>
+
+        <div class="control">
+          <label for="dots">Max dots: <span id="dotsVal">26</span></label>
+          <input id="dots" type="range" min="3" max="26" value="26" />
+          <div class="hint">A..Z labels, fewer dots simplify the outline.</div>
+        </div>
+
+        <div class="control">
+          <label for="smooth">Smoothing</label>
+          <input id="smooth" type="range" min="0" max="4" value="2" />
+          <div class="hint">Higher values reduce noise before outlining.</div>
+        </div>
+
+        <div class="control">
+          <label for="adaptive">Adaptive threshold</label>
+          <div>
+            <input id="adaptive" type="checkbox" checked /> Use adaptive local contrast (better for uneven lighting)
+          </div>
+          <div class="hint">Uncheck to use global Otsu threshold.</div>
+        </div>
+
+        <div class="control">
+          <label for="invert">Invert foreground</label>
+          <div>
+            <input id="invert" type="checkbox" /> Force invert (use if the outline picks the background)
+          </div>
+          <div class="hint">Auto detection is default; this overrides it.</div>
+        </div>
+
+        <div class="control" style="align-self: end; display: flex; gap: 8px; flex-wrap: wrap;">
+          <button id="toggleUnderlay" class="btn secondary" disabled>Hide Underlay</button>
+          <button id="toggleLines" class="btn secondary" disabled>Hide Lines</button>
+          <button id="downloadDots" class="btn secondary" disabled>Download Dot‑to‑Dot</button>
+          <button id="downloadStencil" class="btn secondary" disabled>Download Stencil</button>
+        </div>
+      </div>
+
+      <div class="outputs">
+        <div class="canvas-wrap">
+          <div class="canvas-title">Black & White Stencil</div>
+          <canvas id="stencilCanvas"></canvas>
+        </div>
+        <div class="canvas-wrap">
+          <div class="canvas-title">Dot‑to‑Dot (A → Z)</div>
+          <canvas id="dotCanvas"></canvas>
+          <div class="hint">Tip: Drag dots to fine‑tune positions. Use the Dot Size control to make dots bigger.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">For Irène, from Daniel :)</div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('file');
+    const dotsRange = document.getElementById('dots');
+    const dotsVal = document.getElementById('dotsVal');
+    const smoothRange = document.getElementById('smooth');
+    const downloadDotsBtn = document.getElementById('downloadDots');
+    const downloadStencilBtn = document.getElementById('downloadStencil');
+    const adaptiveChk = document.getElementById('adaptive');
+    const invertChk = document.getElementById('invert');
+    const toggleUnderlayBtn = document.getElementById('toggleUnderlay');
+    const toggleLinesBtn = document.getElementById('toggleLines');
+    
+    // Controls for interactivity
+    const dotSizeWrap = document.createElement('div');
+    dotSizeWrap.className = 'control';
+    dotSizeWrap.innerHTML = `
+      <label for="dotSize">Dot size: <span id="dotSizeVal"></span></label>
+      <input id="dotSize" type="range" min="2" max="24" value="0" />
+      <div class="hint">Increase for better visibility when printing.</div>
+    `;
+    // Insert dot size control next to Max dots
+    (function insertDotSizeControl(){
+      const controls = document.querySelector('.controls');
+      // Insert after the Max dots control (index 1)
+      if (controls && controls.children.length >= 2) {
+        controls.insertBefore(dotSizeWrap, controls.children[2]);
+      }
+    })();
+
+    const stencilCanvas = document.getElementById('stencilCanvas');
+    const dotCanvas = document.getElementById('dotCanvas');
+    const stencilCtx = stencilCanvas.getContext('2d');
+    const dotCtx = dotCanvas.getContext('2d');
+
+    let loadedImageBitmap = null;
+    let workingWidth = 0;
+    let workingHeight = 0;
+    let interactivePoints = [];
+    let dotSizeOverride = 0; // 0 means auto
+    let showUnderlay = true;
+    let showLines = true;
+
+    dotsRange.addEventListener('input', () => { dotsVal.textContent = String(dotsRange.value); scheduleProcess(); });
+    smoothRange.addEventListener('input', scheduleProcess);
+    adaptiveChk.addEventListener('change', scheduleProcess);
+    invertChk.addEventListener('change', scheduleProcess);
+
+    const dotSizeSlider = document.getElementById('dotSize');
+    const dotSizeVal = document.getElementById('dotSizeVal');
+    function syncDotSizeLabel() {
+      const autoPx = Math.max(2, Math.round(Math.max(workingWidth, workingHeight) * 0.007));
+      const current = Number(dotSizeSlider.value);
+      dotSizeVal.textContent = current === 0 ? `Auto (${autoPx}px)` : `${current}px`;
+    }
+    dotSizeSlider.addEventListener('input', () => {
+      dotSizeOverride = Number(dotSizeSlider.value);
+      syncDotSizeLabel();
+      redrawDotCanvas();
+    });
+
+    toggleUnderlayBtn.addEventListener('click', () => {
+      showUnderlay = !showUnderlay;
+      toggleUnderlayBtn.textContent = showUnderlay ? 'Hide Underlay' : 'Show Underlay';
+      redrawDotCanvas();
+    });
+
+    toggleLinesBtn.addEventListener('click', () => {
+      showLines = !showLines;
+      toggleLinesBtn.textContent = showLines ? 'Hide Lines' : 'Show Lines';
+      redrawDotCanvas();
+    });
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const imageUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = async () => {
+        const maxSide = 640;
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        workingWidth = Math.max(64, Math.round(img.width * scale));
+        workingHeight = Math.max(64, Math.round(img.height * scale));
+
+        loadedImageBitmap = await createImageBitmap(img, { resizeWidth: workingWidth, resizeHeight: workingHeight, resizeQuality: 'high' });
+        syncCanvasSizes();
+        drawSourceToCanvases();
+        syncDotSizeLabel();
+        processNow();
+      };
+      img.onerror = () => { alert('Could not load image. Try a different file.'); };
+      img.src = imageUrl;
+    });
+
+    let debounceTimer = null;
+    function scheduleProcess() {
+      if (!loadedImageBitmap) return;
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(processNow, 60);
+    }
+
+    async function processNow() {
+      if (!loadedImageBitmap) return;
+      const smoothingPasses = Number(smoothRange.value);
+      const useAdaptive = adaptiveChk.checked;
+      const forceInvert = invertChk.checked;
+      const stencil = await generateStencil(loadedImageBitmap, smoothingPasses, { adaptive: useAdaptive, forceInvert });
+      drawBinaryToCanvas(stencilCanvas, stencil.width, stencil.height, stencil.binary);
+      const outlinePoints = extractOutline(stencil.binary, stencil.width, stencil.height);
+      const simplified = simplifyToMaxPoints(outlinePoints, Number(dotsRange.value));
+      interactivePoints = simplified.slice();
+      drawDotToDot(dotCanvas, interactivePoints, stencil.width, stencil.height);
+      downloadDotsBtn.disabled = false;
+      downloadStencilBtn.disabled = false;
+      toggleUnderlayBtn.disabled = false;
+      toggleLinesBtn.disabled = false;
+    }
+
+    // Drag/Drop interaction on dot canvas
+    let draggingIndex = -1;
+    let dragOffset = [0, 0];
+    dotCanvas.addEventListener('pointerdown', (e) => {
+      if (!interactivePoints || interactivePoints.length === 0) return;
+      const rect = dotCanvas.getBoundingClientRect();
+      const sx = (e.clientX - rect.left) * (workingWidth / rect.width);
+      const sy = (e.clientY - rect.top) * (workingHeight / rect.height);
+      const radius = dotSizeOverride > 0 ? dotSizeOverride : Math.max(2, Math.round(Math.max(workingWidth, workingHeight) * 0.007));
+      const hitRadius = Math.max(radius + 6, 10);
+      for (let i = 0; i < interactivePoints.length; i++) {
+        const [px, py] = interactivePoints[i];
+        if (Math.hypot(px - sx, py - sy) <= hitRadius) {
+          draggingIndex = i;
+          dragOffset = [sx - px, sy - py];
+          dotCanvas.setPointerCapture(e.pointerId);
+          break;
+        }
+      }
+    });
+
+    dotCanvas.addEventListener('pointermove', (e) => {
+      if (draggingIndex < 0) return;
+      const rect = dotCanvas.getBoundingClientRect();
+      const sx = (e.clientX - rect.left) * (workingWidth / rect.width);
+      const sy = (e.clientY - rect.top) * (workingHeight / rect.height);
+      let nx = sx - dragOffset[0];
+      let ny = sy - dragOffset[1];
+      nx = Math.max(0, Math.min(workingWidth, nx));
+      ny = Math.max(0, Math.min(workingHeight, ny));
+      interactivePoints[draggingIndex] = [nx, ny];
+      redrawDotCanvas();
+    });
+
+    dotCanvas.addEventListener('pointerup', (e) => {
+      draggingIndex = -1;
+      try { dotCanvas.releasePointerCapture(e.pointerId); } catch (_) {}
+    });
+    dotCanvas.addEventListener('pointercancel', () => { draggingIndex = -1; });
+
+    downloadDotsBtn.addEventListener('click', () => { downloadCanvas(dotCanvas, 'dot-to-dot.png'); });
+    downloadStencilBtn.addEventListener('click', () => { downloadCanvas(stencilCanvas, 'stencil.png'); });
+
+    function syncCanvasSizes() {
+      [stencilCanvas, dotCanvas].forEach(c => { c.width = workingWidth; c.height = workingHeight; });
+    }
+
+    function drawSourceToCanvases() {
+      stencilCtx.clearRect(0, 0, stencilCanvas.width, stencilCanvas.height);
+      dotCtx.clearRect(0, 0, dotCanvas.width, dotCanvas.height);
+      stencilCtx.drawImage(loadedImageBitmap, 0, 0);
+      dotCtx.drawImage(loadedImageBitmap, 0, 0);
+    }
+
+    function downloadCanvas(canvas, filename) {
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function getGrayscale(ctx, w, h) {
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+      const gray = new Uint8ClampedArray(w * h);
+      for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+        const r = data[i + 0];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        gray[j] = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+      }
+      return gray;
+    }
+
+    function blur5Separable(src, w, h, passes) {
+      if (passes <= 0) return src;
+      const kernel = [1, 4, 6, 4, 1];
+      const ksum = 16;
+      let out = new Uint8ClampedArray(src);
+      const tmp = new Float32Array(w * h);
+      for (let p = 0; p < passes; p++) {
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            let acc = 0;
+            for (let k = -2; k <= 2; k++) {
+              const xx = Math.min(w - 1, Math.max(0, x + k));
+              acc += kernel[k + 2] * out[y * w + xx];
+            }
+            tmp[y * w + x] = acc / ksum;
+          }
+        }
+        for (let x = 0; x < w; x++) {
+          for (let y = 0; y < h; y++) {
+            let acc = 0;
+            for (let k = -2; k <= 2; k++) {
+              const yy = Math.min(h - 1, Math.max(0, y + k));
+              acc += kernel[k + 2] * tmp[yy * w + x];
+            }
+            out[y * w + x] = Math.round(acc / ksum);
+          }
+        }
+      }
+      return out;
+    }
+
+    function otsuThreshold(gray) {
+      const hist = new Array(256).fill(0);
+      for (let i = 0; i < gray.length; i++) hist[gray[i]]++;
+      const total = gray.length;
+      let sum = 0;
+      for (let t = 0; t < 256; t++) sum += t * hist[t];
+      let sumB = 0;
+      let wB = 0;
+      let maxVar = -1;
+      let threshold = 127;
+      for (let t = 0; t < 256; t++) {
+        wB += hist[t];
+        if (wB === 0) continue;
+        const wF = total - wB;
+        if (wF === 0) break;
+        sumB += t * hist[t];
+        const mB = sumB / wB;
+        const mF = (sum - sumB) / wF;
+        const betweenVar = wB * wF * (mB - mF) * (mB - mF);
+        if (betweenVar > maxVar) { maxVar = betweenVar; threshold = t; }
+      }
+      return threshold;
+    }
+
+    async function generateStencil(imageBitmap, smoothingPasses, options) {
+      const w = workingWidth;
+      const h = workingHeight;
+      stencilCtx.clearRect(0, 0, w, h);
+      stencilCtx.drawImage(imageBitmap, 0, 0);
+      let gray = getGrayscale(stencilCtx, w, h);
+      gray = blur5Separable(gray, w, h, smoothingPasses);
+      const thr = otsuThreshold(gray);
+      const useAdaptive = options && options.adaptive;
+      const forceInvert = options && options.forceInvert;
+      // Build both polarities and choose the one that best avoids the border
+      const maskDark = useAdaptive ? adaptiveThreshold(gray, w, h, true) : thresholdToMask(gray, thr, true);
+      const maskLight = useAdaptive ? adaptiveThreshold(gray, w, h, false) : thresholdToMask(gray, thr, false);
+      let countDark = 0, countLight = 0;
+      for (let i = 0; i < gray.length; i++) { if (maskDark[i]) countDark++; if (maskLight[i]) countLight++; }
+      function borderOnes(mask) {
+        let c = 0;
+        for (let x = 0; x < w; x++) { c += mask[x]; c += mask[(h - 1) * w + x]; }
+        for (let y = 0; y < h; y++) { c += mask[y * w + 0]; c += mask[y * w + (w - 1)]; }
+        return c;
+      }
+      const darkBorder = borderOnes(maskDark);
+      const lightBorder = borderOnes(maskLight);
+      // Prefer polarity with fewer border activations and reasonable fill ratio
+      const total = w * h;
+      const darkRatio = countDark / total;
+      const lightRatio = countLight / total;
+      let chosen = maskDark;
+      if (forceInvert) chosen = maskLight;
+      if (lightBorder < darkBorder) chosen = maskLight;
+      if (darkRatio < 0.01 && lightRatio > 0.01) chosen = maskLight;
+      if (lightRatio < 0.01 && darkRatio > 0.01) chosen = maskDark;
+      if (darkRatio > 0.98 && lightRatio < 0.98) chosen = maskLight;
+      if (lightRatio > 0.98 && darkRatio < 0.98) chosen = maskDark;
+      // Morphological closing to connect thin gaps and fill tiny holes
+      const closed = morphologicalClose(chosen, w, h, 1);
+      return { width: w, height: h, binary: closed };
+    }
+
+    function thresholdToMask(gray, thr, darkIsForeground) {
+      const w = workingWidth, h = workingHeight;
+      const mask = new Uint8Array(w * h);
+      if (darkIsForeground) {
+        for (let i = 0; i < gray.length; i++) mask[i] = gray[i] < thr ? 1 : 0;
+      } else {
+        for (let i = 0; i < gray.length; i++) mask[i] = gray[i] >= thr ? 1 : 0;
+      }
+      return mask;
+    }
+
+    function adaptiveThreshold(gray, w, h, darkIsForeground) {
+      // Bradley adaptive threshold using integral image. Window ~ 1/8 of min dimension.
+      const s = Math.max(8, Math.floor(Math.min(w, h) / 8));
+      const t = 0.15; // sensitivity
+      const integral = new Float64Array((w + 1) * (h + 1));
+      for (let y = 1; y <= h; y++) {
+        let rowsum = 0;
+        for (let x = 1; x <= w; x++) {
+          const val = gray[(y - 1) * w + (x - 1)];
+          rowsum += val;
+          const idx = y * (w + 1) + x;
+          integral[idx] = rowsum + integral[idx - (w + 1)];
+        }
+      }
+      const mask = new Uint8Array(w * h);
+      const s2 = Math.floor(s / 2);
+      for (let y = 0; y < h; y++) {
+        const y0 = Math.max(0, y - s2), y1 = Math.min(h - 1, y + s2);
+        for (let x = 0; x < w; x++) {
+          const x0 = Math.max(0, x - s2), x1 = Math.min(w - 1, x + s2);
+          const count = (x1 - x0 + 1) * (y1 - y0 + 1);
+          const sum = boxIntegral(integral, w, x0, y0, x1, y1);
+          const mean = sum / count;
+          const pix = gray[y * w + x];
+          const isDark = pix < mean * (1 - t) ? 1 : 0;
+          mask[y * w + x] = darkIsForeground ? isDark : 1 - isDark;
+        }
+      }
+      return mask;
+    }
+
+    function boxIntegral(integral, w, x0, y0, x1, y1) {
+      // integral is (w+1) x (h+1)
+      const W = w + 1;
+      x0 += 1; y0 += 1; x1 += 1; y1 += 1;
+      const A = integral[y0 * W + x0];
+      const B = integral[y0 * W + x1];
+      const C = integral[y1 * W + x0];
+      const D = integral[y1 * W + x1];
+      return D - B - C + A;
+    }
+
+    function morphologicalClose(mask, w, h, iterations) {
+      let out = mask;
+      for (let i = 0; i < iterations; i++) {
+        out = dilate3x3(out, w, h);
+        out = erode3x3(out, w, h);
+      }
+      return out;
+    }
+
+    function dilate3x3(mask, w, h) {
+      const out = new Uint8Array(w * h);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          let on = 0;
+          for (let dy = -1; dy <= 1 && !on; dy++) {
+            for (let dx = -1; dx <= 1 && !on; dx++) {
+              const nx = x + dx, ny = y + dy;
+              if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+              if (mask[ny * w + nx]) on = 1;
+            }
+          }
+          out[y * w + x] = on;
+        }
+      }
+      return out;
+    }
+
+    function erode3x3(mask, w, h) {
+      const out = new Uint8Array(w * h);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          if (!mask[y * w + x]) { out[y * w + x] = 0; continue; }
+          let keep = 1;
+          for (let dy = -1; dy <= 1 && keep; dy++) {
+            for (let dx = -1; dx <= 1 && keep; dx++) {
+              const nx = x + dx, ny = y + dy;
+              if (nx < 0 || ny < 0 || nx >= w || ny >= h) { keep = 0; break; }
+              if (!mask[ny * w + nx]) keep = 0;
+            }
+          }
+          out[y * w + x] = keep ? 1 : 0;
+        }
+      }
+      return out;
+    }
+
+    function drawBinaryToCanvas(canvas, w, h, binary) {
+      const ctx = canvas.getContext('2d');
+      const imgData = ctx.createImageData(w, h);
+      for (let i = 0, j = 0; i < binary.length; i++, j += 4) {
+        const isFg = binary[i] ? 0 : 255; // foreground black on white background
+        imgData.data[j + 0] = isFg;
+        imgData.data[j + 1] = isFg;
+        imgData.data[j + 2] = isFg;
+        imgData.data[j + 3] = 255;
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    function extractOutline(binary, w, h) {
+      const componentMask = extractLargestComponent(binary, w, h);
+      const boundary = computeBoundary(componentMask, w, h);
+      const contour = mooreNeighborTrace(boundary, w, h);
+      if (contour.length > 0) return contour;
+      const fallback = collectBoundaryPoints(boundary, w, h);
+      return fallback;
+    }
+
+    function extractLargestComponent(binary, w, h) {
+      const visited = new Uint8Array(w * h);
+      const labels = new Uint16Array(w * h);
+      const qx = new Int32Array(w * h);
+      const qy = new Int32Array(w * h);
+      const sizes = [];
+      const touchesBorder = [];
+      let currentLabel = 0;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = y * w + x;
+          if (visited[idx] || binary[idx] === 0) continue;
+          currentLabel++;
+          let head = 0, tail = 0, size = 0; let touch = 0;
+          qx[tail] = x; qy[tail] = y; tail++;
+          visited[idx] = 1;
+          while (head < tail) {
+            const cx = qx[head];
+            const cy = qy[head];
+            head++;
+            const cidx = cy * w + cx;
+            labels[cidx] = currentLabel;
+            size++;
+            if (cx === 0 || cy === 0 || cx === w - 1 || cy === h - 1) touch = 1;
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const nx = cx + dx;
+                const ny = cy + dy;
+                if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+                const nidx = ny * w + nx;
+                if (visited[nidx] || binary[nidx] === 0) continue;
+                visited[nidx] = 1;
+                qx[tail] = nx; qy[tail] = ny; tail++;
+              }
+            }
+          }
+          sizes[currentLabel] = size;
+          touchesBorder[currentLabel] = touch;
+        }
+      }
+      if (currentLabel === 0) return new Uint8Array(w * h);
+      // Choose the largest component that does not touch border, else largest overall with reasonable area
+      let chosen = 1; let bestSize = -1;
+      for (let l = 1; l <= currentLabel; l++) {
+        if (!touchesBorder[l] && sizes[l] > bestSize) { bestSize = sizes[l]; chosen = l; }
+      }
+      if (bestSize === -1) {
+        // All touch border; choose the one that is not overwhelmingly large
+        const total = w * h;
+        let bestAltSize = -1; let bestAltLabel = 1;
+        for (let l = 1; l <= currentLabel; l++) {
+          if (sizes[l] / total < 0.9 && sizes[l] > bestAltSize) { bestAltSize = sizes[l]; bestAltLabel = l; }
+        }
+        chosen = bestAltSize > 0 ? bestAltLabel : 1;
+      }
+      const mask = new Uint8Array(w * h);
+      for (let i = 0; i < labels.length; i++) mask[i] = labels[i] === chosen ? 1 : 0;
+      return mask;
+    }
+
+    function computeBoundary(mask, w, h) {
+      const boundary = new Uint8Array(w * h);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = y * w + x;
+          if (!mask[idx]) continue;
+          // 4-neighborhood boundary check (faster than erosion)
+          if (x === 0 || y === 0 || x === w - 1 || y === h - 1) { boundary[idx] = 1; continue; }
+          if (!mask[idx - 1] || !mask[idx + 1] || !mask[idx - w] || !mask[idx + w]) boundary[idx] = 1;
+        }
+      }
+      return boundary;
+    }
+
+    function mooreNeighborTrace(boundary, w, h) {
+      const dirs = [ [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1], [0,-1], [1,-1] ];
+      let startX = -1, startY = -1;
+      for (let y = 0; y < h && startY === -1; y++) {
+        for (let x = 0; x < w; x++) {
+          if (boundary[y * w + x]) { startX = x; startY = y; break; }
+        }
+      }
+      if (startX === -1) return [];
+      const contour = [];
+      let currX = startX, currY = startY;
+      let prevDir = 0; // direction index
+      contour.push([currX, currY]);
+      const maxSteps = Math.min(w * h * 2, 200000);
+      let steps = 0;
+      while (steps++ < maxSteps) {
+        // Start looking from the direction to the left of where we came from
+        let k = (prevDir + 6) % 8;
+        let found = false;
+        for (let t = 0; t < 8; t++) {
+          const kk = (k + t) % 8;
+          const nx = currX + dirs[kk][0];
+          const ny = currY + dirs[kk][1];
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+          if (boundary[ny * w + nx]) {
+            prevDir = kk;
+            currX = nx; currY = ny;
+            contour.push([currX, currY]);
+            found = true;
+            break;
+          }
+        }
+        if (!found) break;
+        if (currX === startX && currY === startY && contour.length > 3) break;
+      }
+      // Decimate if very dense to protect downstream algorithms
+      const maxContourLen = 2000;
+      if (contour.length > maxContourLen) {
+        const step = Math.ceil(contour.length / maxContourLen);
+        const dec = [];
+        for (let i = 0; i < contour.length; i += step) dec.push(contour[i]);
+        // Ensure closed shape by repeating the start if needed
+        if (dec.length === 0 || dec[0] !== dec[dec.length - 1]) dec.push(dec[0]);
+        return dec;
+      }
+      return contour;
+    }
+
+    function collectBoundaryPoints(boundary, w, h) {
+      const pts = [];
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          if (boundary[y * w + x]) pts.push([x, y]);
+        }
+      }
+      return pts;
+    }
+
+    function perpendicularDistance(point, lineStart, lineEnd) {
+      const [x, y] = point, [x1, y1] = lineStart, [x2, y2] = lineEnd;
+      const A = x - x1, B = y - y1, C = x2 - x1, D = y2 - y1;
+      const dot = A * C + B * D;
+      const lenSq = C * C + D * D || 1e-6;
+      const t = dot / lenSq;
+      const ex = x1 + t * C, ey = y1 + t * D;
+      const dx = x - ex, dy = y - ey;
+      return Math.hypot(dx, dy);
+    }
+
+    function rdpIterative(points, epsilon) {
+      if (points.length <= 2) return points.slice();
+      const stack = [[0, points.length - 1]];
+      const keep = new Uint8Array(points.length);
+      keep[0] = 1; keep[points.length - 1] = 1;
+      while (stack.length) {
+        const [startIdx, endIdx] = stack.pop();
+        let maxDist = -1, index = -1;
+        const start = points[startIdx];
+        const end = points[endIdx];
+        for (let i = startIdx + 1; i < endIdx; i++) {
+          const d = perpendicularDistance(points[i], start, end);
+          if (d > maxDist) { maxDist = d; index = i; }
+        }
+        if (maxDist > epsilon && index !== -1) {
+          keep[index] = 1;
+          stack.push([startIdx, index]);
+          stack.push([index, endIdx]);
+        }
+      }
+      const out = [];
+      for (let i = 0; i < points.length; i++) if (keep[i]) out.push(points[i]);
+      return out;
+    }
+
+    function simplifyToMaxPoints(points, maxPoints) {
+      if (!points || points.length === 0) return [];
+      const closed = points[0][0] === points[points.length - 1][0] && points[0][1] === points[points.length - 1][1];
+      const ring = closed ? points : points.concat([points[0]]);
+      // Pre-decimate to cap complexity for RDP
+      const maxPrePoints = 1500;
+      let pre = ring;
+      if (ring.length > maxPrePoints) {
+        const step = Math.ceil(ring.length / maxPrePoints);
+        const tmp = [];
+        for (let i = 0; i < ring.length; i += step) tmp.push(ring[i]);
+        if (tmp[tmp.length - 1][0] !== tmp[0][0] || tmp[tmp.length - 1][1] !== tmp[0][1]) tmp.push(tmp[0]);
+        pre = tmp;
+      }
+      // Gentle simplification to reduce noise, keep enough points for faithful resampling
+      let epsilon = Math.max(1, Math.round(Math.max(workingWidth, workingHeight) * 0.0025));
+      let simplified = rdpIterative(pre, epsilon);
+      let safety = 0;
+      while (simplified.length > 800 && safety++ < 30) {
+        epsilon *= 1.2;
+        simplified = rdpIterative(pre, epsilon);
+      }
+      if (simplified.length < maxPoints) {
+        // Not enough points after simplification; fall back
+        simplified = pre;
+      }
+      let resampled = resampleClosedPolyline(simplified, Math.min(26, Math.max(3, maxPoints)));
+      // Rotate so that A is near top-left for consistency
+      if (resampled.length > 0) {
+        let best = 0;
+        for (let i = 1; i < resampled.length; i++) {
+          const [bx, by] = resampled[best];
+          const [cx, cy] = resampled[i];
+          if (cy < by || (cy === by && cx < bx)) best = i;
+        }
+        if (best !== 0) {
+          resampled = resampled.slice(best).concat(resampled.slice(0, best));
+        }
+      }
+      return resampled;
+    }
+
+    function resampleClosedPolyline(points, num) {
+      if (!points || points.length === 0) return [];
+      // Ensure closed
+      const ring = (points[0][0] === points[points.length - 1][0] && points[0][1] === points[points.length - 1][1])
+        ? points
+        : points.concat([points[0]]);
+      const segCount = ring.length - 1;
+      const lengths = new Float32Array(segCount);
+      let total = 0;
+      for (let i = 0; i < segCount; i++) {
+        const a = ring[i], b = ring[i + 1];
+        const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        lengths[i] = len; total += len;
+      }
+      if (total === 0) return ring.slice(0, num);
+      const step = total / num;
+      const out = [];
+      let target = 0;
+      let segIndex = 0; let segPos = 0; // distance into current segment
+      while (out.length < num) {
+        // Advance to the segment containing target distance
+        while (segIndex < segCount && segPos + lengths[segIndex] < target) {
+          segPos += lengths[segIndex];
+          segIndex++;
+        }
+        if (segIndex >= segCount) {
+          out.push(ring[ring.length - 1]);
+          break;
+        }
+        const a = ring[segIndex], b = ring[segIndex + 1];
+        const remain = target - segPos;
+        const t = lengths[segIndex] === 0 ? 0 : remain / lengths[segIndex];
+        out.push([ a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1]) ]);
+        target += step;
+      }
+      return out;
+    }
+
+    function drawDotToDot(canvas, points, w, h) {
+      const ctx = canvas.getContext('2d');
+      ctx.save();
+      ctx.clearRect(0, 0, w, h);
+      // white background then faint original image underlay
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+      if (loadedImageBitmap) {
+        if (showUnderlay) {
+          ctx.globalAlpha = 0.5;
+          ctx.drawImage(loadedImageBitmap, 0, 0, w, h);
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      if (!points || points.length < 2) {
+        ctx.restore();
+        return;
+      }
+
+      if (showLines) {
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = Math.max(1, Math.round(Math.max(w, h) * 0.003));
+        ctx.beginPath();
+        ctx.moveTo(points[0][0], points[0][1]);
+        for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+        ctx.closePath();
+        ctx.stroke();
+      }
+
+      const autoRadius = Math.max(2, Math.round(Math.max(w, h) * 0.007));
+      const radius = dotSizeOverride > 0 ? dotSizeOverride : autoRadius;
+      ctx.fillStyle = '#000000';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < points.length && i < 26; i++) {
+        const [x, y] = points[i];
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        const label = String.fromCharCode('A'.charCodeAt(0) + i);
+        // Clear a white halo behind letter for better readability
+        const fontSize = Math.round(radius * 2.2);
+        ctx.font = `600 ${fontSize}px Segoe UI, Arial, sans-serif`;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'left';
+        const tx = x + radius * 1.1;
+        const ty = y;
+        ctx.fillStyle = 'white';
+        const metrics = ctx.measureText(label);
+        const pad = Math.ceil(fontSize * 0.2);
+        const wRect = metrics.width + pad * 2;
+        const hRect = fontSize + pad * 0.6;
+        ctx.fillRect(tx - pad, ty - hRect / 2, wRect, hRect);
+        ctx.fillStyle = '#111827';
+        ctx.fillText(label, tx, ty + 1);
+        ctx.fillStyle = '#000000';
+      }
+      ctx.restore();
+    }
+
+    // Redraw helper for interactive updates
+    function redrawDotCanvas() {
+      drawDotToDot(dotCanvas, interactivePoints, workingWidth, workingHeight);
+    }
+  </script>
+</body>
+</html>
+
+
